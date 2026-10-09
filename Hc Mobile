@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HC Mobile</title>
+<style>
+:root{--bg:#14293a;--panel:#1f3a50;--chalk:#eef0f2;--accent:#d6402f;--gold:#c89b5b;--mute:#8fa5b6}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--chalk);font-family:system-ui,-apple-system,"Trebuchet MS",sans-serif;overflow:hidden}
+
+.screen{position:fixed;inset:0;display:none;flex-direction:column;padding:env(safe-area-inset-top,0px) 16px env(safe-area-inset-bottom,0px);overflow-y:auto}
+.screen.on{display:flex}
+
+/* Loading */
+#loading{align-items:center;justify-content:center;text-align:center}
+.logo{font-size:44px;font-weight:800;letter-spacing:2px;margin:0}
+.logo span{color:var(--accent)}
+.bar{width:220px;height:8px;background:var(--panel);border-radius:8px;overflow:hidden;margin-top:24px}
+.bar i{display:block;height:100%;width:0;background:var(--accent);animation:fill 2.4s linear forwards}
+@keyframes fill{to{width:100%}}
+.tip{color:var(--mute);font-size:14px;margin-top:14px}
+
+/* Welcome */
+#welcome{align-items:center;justify-content:center;text-align:center}
+#welcome h1{font-size:32px;margin:0 0 10px}
+#welcome p{color:var(--mute);margin:0 0 28px}
+
+/* Buttons */
+button{font:inherit;color:var(--chalk);background:var(--panel);border:2px solid var(--mute);border-radius:12px;padding:14px;cursor:pointer}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.4}
+.primary{background:var(--accent);border-color:var(--accent);font-weight:700;font-size:18px;min-width:200px}
+.back{align-self:flex-start;margin:12px 0 0;padding:8px 14px;font-size:14px}
+
+/* Home / Play Zone */
+#home{padding-top:calc(env(safe-area-inset-top,0px) + 14px)}
+.topbar{background:var(--panel);border-radius:16px;padding:14px;margin-top:4px}
+.topbar h2{margin:0 0 12px;font-size:20px;color:var(--gold);text-align:center;letter-spacing:1px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.grid button{font-weight:700;font-size:15px;padding:16px 8px}
+.grid .wide{grid-column:span 2}
+.home-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--mute);text-align:center;padding:20px}
+.home-body .primary{width:100%;max-width:320px}
+
+/* Mode placeholder */
+#mode{align-items:center;justify-content:center;text-align:center}
+#mode h1{font-size:30px;margin:0 0 8px}
+#mode p{color:var(--mute);margin:0 0 24px;max-width:320px}
+.soon{color:var(--gold);font-weight:700;letter-spacing:1px;margin-bottom:6px}
+
+/* Draft */
+#draft h1{font-size:28px;margin:8px 0 4px;text-align:center}
+#draft .sub{color:var(--mute);text-align:center;margin:0 0 16px}
+.tokenbox{background:var(--panel);border-radius:14px;padding:14px;text-align:center;margin-bottom:14px}
+.tokenbox small{color:var(--mute);display:block;font-size:13px;letter-spacing:1px}
+.tokenbox b{font-size:32px;color:var(--gold)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.seg button.on{background:var(--accent);border-color:var(--accent);font-weight:700}
+#createBtn{width:100%}
+.msg{min-height:44px;text-align:center;color:var(--gold);margin:10px 0;font-size:15px}
+.draftbox{background:var(--panel);border-radius:14px;padding:14px;margin-top:6px}
+.draftbox h3{margin:0 0 10px;font-size:17px;color:var(--gold)}
+.draftbox ul{list-style:none;margin:0;padding:0}
+.draftbox li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2c4a62}
+.draftbox li:last-child{border-bottom:none}
+.draftbox .empty{color:var(--mute);font-size:14px}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<section id="loading" class="screen on">
+  <h1 class="logo">HC <span>MOBILE</span></h1>
+  <div class="bar"><i></i></div>
+  <div class="tip">Loading...</div>
+</section>
+
+<!-- WELCOME -->
+<section id="welcome" class="screen">
+  <h1>Welcome to HC Mobile</h1>
+  <p>Hand cricket, reimagined. Pick a mode and play.</p>
+  <button class="primary" id="startBtn">Start</button>
+</section>
+
+<!-- HOME: Play Zone top button area -->
+<section id="home" class="screen">
+  <div class="topbar">
+    <h2>PLAY ZONE</h2>
+    <div class="grid" id="modeGrid"></div>
+  </div>
+  <div class="home-body">
+    <div>Choose a mode above, or build your squad.</div>
+    <button class="primary" id="goDraft">Draft</button>
+  </div>
+</section>
+
+<!-- MODE placeholder -->
+<section id="mode" class="screen">
+  <button class="back" data-go="home">&larr; Play Zone</button>
+  <div class="soon">COMING SOON</div>
+  <h1 id="modeTitle"></h1>
+  <p id="modeDesc"></p>
+</section>
+
+<!-- DRAFT -->
+<section id="draft" class="screen">
+  <button class="back" data-go="home">&larr; Home</button>
+  <h1>Welcome to Draft</h1>
+  <p class="sub">Choose a team, then create a draft.</p>
+
+  <div class="tokenbox">
+    <small>DRAFT TOKENS</small>
+    <b id="tokens">0</b>
+  </div>
+
+  <div class="seg">
+    <button id="selMen">Men</button>
+    <button id="selWomen">Women</button>
+  </div>
+
+  <button class="primary" id="createBtn">Create Draft (1 token)</button>
+  <div class="msg" id="msg"></div>
+
+  <div class="draftbox">
+    <h3 id="boxTitle">Men's Draft</h3>
+    <ul id="myList"></ul>
+  </div>
+</section>
+
+<script>
+/* ============ DATA: placeholders. Replace with your real player lists. Format: [name, role, rating] ============ */
+const PLAYERS = {
+  men: [
+    ["Player M1", "BAT", 90], ["Player M2", "BOWL", 88], ["Player M3", "AR", 86],
+    ["Player M4", "WK", 84], ["Player M5", "BAT", 82], ["Player M6", "BOWL", 80]
+  ],
+  women: [
+    ["Player W1", "BAT", 89], ["Player W2", "BOWL", 87], ["Player W3", "AR", 85],
+    ["Player W4", "WK", 83], ["Player W5", "BAT", 81], ["Player W6", "BOWL", 79]
+  ]
+};
+const ROLE = { BAT: "Batter", WK: "Wicketkeeper", AR: "All-rounder", BOWL: "Bowler" };
+const DRAFT_COST = 1;
+const START_TOKENS = 10;
+
+/* ============ SAVE STATE ============ */
+let state = { tokens: START_TOKENS, own: { men: [], women: [] } };
+try {
+  const saved = JSON.parse(localStorage.getItem("hc_mobile"));
+  if (saved) state = saved;
+} catch (e) {}
+function save() {
+  try { localStorage.setItem("hc_mobile", JSON.stringify(state)); } catch (e) {}
+}
+
+/* ============ SCREENS ============ */
+function show(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id));
+}
+document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => show(b.dataset.go));
+
+/* ============ PLAY ZONE ============ */
+const MODES = [
+  { name: "1v1",         desc: "Head-to-head, one player against one player." },
+  { name: "2v2",         desc: "Two players per side, team against team." },
+  { name: "3v3",         desc: "Three players per side, team against team." },
+  { name: "Tournament",  desc: "Knockout cup. Win each round to reach the final." },
+  { name: "IPL Match",   desc: "IPL-style match with IPL squads." },
+  { name: "WCC Men's",   desc: "Men's World Cup Cricket mode." },
+  { name: "WCC Women's", desc: "Women's World Cup Cricket mode." }
+];
+const grid = document.getElementById("modeGrid");
+MODES.forEach((m, i) => {
+  const b = document.createElement("button");
+  b.textContent = m.name;
+  if (i === MODES.length - 1 && MODES.length % 2 === 1) b.classList.add("wide");
+  b.onclick = () => openMode(m);
+  grid.appendChild(b);
+});
+function openMode(m) {
+  document.getElementById("modeTitle").textContent = m.name;
+  document.getElementById("modeDesc").textContent = m.desc;
+  show("mode");
+}
+
+/* ============ DRAFT ============ */
+let group = "men";
+const msgEl = document.getElementById("msg");
+
+function setMsg(text) { msgEl.textContent = text; }
+
+function renderDraft() {
+  document.getElementById("tokens").textContent = state.tokens;
+  document.getElementById("selMen").classList.toggle("on", group === "men");
+  document.getElementById("selWomen").classList.toggle("on", group === "women");
+  document.getElementById("boxTitle").textContent = (group === "men" ? "Men's" : "Women's") + " Draft";
+
+  const owned = state.own[group].map(name => PLAYERS[group].find(p => p[0] === name)).filter(Boolean);
+  const list = document.getElementById("myList");
+  list.innerHTML = owned.length
+    ? owned.map(p => `<li><span>${p[0]} <small style="color:var(--mute)">${ROLE[p[1]]}</small></span><b style="color:var(--gold)">${p[2]}</b></li>`).join("")
+    : `<li class="empty">No players drafted yet.</li>`;
+
+  document.getElementById("createBtn").disabled = state.tokens < DRAFT_COST;
+}
+
+function setGroup(g) {
+  group = g;
+  setMsg("");
+  renderDraft();
+}
+document.getElementById("selMen").onclick = () => setGroup("men");
+document.getElementById("selWomen").onclick = () => setGroup("women");
+
+document.getElementById("createBtn").onclick = () => {
+  if (state.tokens < DRAFT_COST) {
+    setMsg("Not enough tokens.");
+    return;
+  }
+  const pool = PLAYERS[group].filter(p => !state.own[group].includes(p[0]));
+  if (!pool.length) {
+    setMsg("You already have every player in this pool.");
+    return;
+  }
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  state.own[group].push(pick[0]);
+  state.tokens -= DRAFT_COST;
+  save();
+  setMsg(`You drafted ${pick[0]} (${pick[2]})!`);
+  renderDraft();
+};
+
+document.getElementById("goDraft").onclick = () => {
+  renderDraft();
+  show("draft");
+};
+
+/* ============ LOADING -> WELCOME ============ */
+setTimeout(() => show("welcome"), 2500);
+document.getElementById("startBtn").onclick = () => show("home");
+</script>
+</body>
+</html>
