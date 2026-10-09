@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HC Mobile</title>
+<style>
+:root{--bg:#14293a;--panel:#1f3a50;--chalk:#eef0f2;--accent:#d6402f;--gold:#c89b5b;--mute:#8fa5b6}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--chalk);font-family:system-ui,-apple-system,"Trebuchet MS",sans-serif;overflow:hidden}
+
+.screen{position:fixed;inset:0;display:none;flex-direction:column;padding:env(safe-area-inset-top,0px) 16px env(safe-area-inset-bottom,0px);overflow-y:auto}
+.screen.on{display:flex}
+
+/* Loading */
+#loading{align-items:center;justify-content:center;text-align:center}
+.logo{font-size:44px;font-weight:800;letter-spacing:2px;margin:0}
+.logo span{color:var(--accent)}
+.bar{width:220px;height:8px;background:var(--panel);border-radius:8px;overflow:hidden;margin-top:24px}
+.bar i{display:block;height:100%;width:0;background:var(--accent);animation:fill 2.4s linear forwards}
+@keyframes fill{to{width:100%}}
+.tip{color:var(--mute);font-size:14px;margin-top:14px}
+
+/* Welcome */
+#welcome{align-items:center;justify-content:center;text-align:center}
+#welcome h1{font-size:32px;margin:0 0 10px}
+#welcome p{color:var(--mute);margin:0 0 28px}
+
+/* Buttons */
+button{font:inherit;color:var(--chalk);background:var(--panel);border:2px solid var(--mute);border-radius:12px;padding:14px;cursor:pointer}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.4}
+.primary{background:var(--accent);border-color:var(--accent);font-weight:700;font-size:18px;min-width:200px}
+.back{align-self:flex-start;margin:12px 0 0;padding:8px 14px;font-size:14px}
+.full{width:100%;min-width:0}
+
+/* Currency bar */
+.cur{display:flex;justify-content:space-around;background:rgba(31,58,80,.88);border-radius:14px;padding:10px;margin-top:10px;font-size:15px}
+.cur b{color:var(--gold);margin-left:4px}
+
+/* Home boxes */
+#home{padding-top:calc(env(safe-area-inset-top,0px) + 6px)}
+.cricket-bg{background:
+  radial-gradient(circle at 50% 50%, transparent 0 150px, rgba(255,255,255,.12) 151px 153px, transparent 154px),
+  linear-gradient(90deg, transparent 49.6%, rgba(255,255,255,.08) 49.6% 50.4%, transparent 50.4%),
+  radial-gradient(ellipse at 50% 35%, #3a8f55 0%, #22613b 45%, #0c2818 100%);}
+/* Credits */
+.cred-wrap{margin:auto;max-width:360px;text-align:center}
+.cred-wrap h1{font-size:34px;margin:0 0 4px}
+.cred-label{color:var(--mute);font-size:13px;letter-spacing:2px;text-transform:uppercase}
+.cred-name{font-size:24px;font-weight:800;color:var(--gold);margin:4px 0 8px}
+.cred-note{color:var(--mute);font-size:14px;margin:0 0 22px}
+.cred-wrap .primary{margin-top:10px}
+.box{background:rgba(31,58,80,.88);backdrop-filter:blur(4px);border-radius:16px;padding:14px;margin-top:14px}
+.box h2{margin:0 0 12px;font-size:20px;color:var(--gold);text-align:center;letter-spacing:1px}
+.box .sub{color:var(--mute);text-align:center;margin:-6px 0 12px;font-size:14px}
+.box .primary{width:100%;min-width:0}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.grid button{font-weight:700;font-size:15px;padding:16px 8px}
+.grid .wide{grid-column:span 2}
+
+/* Mode placeholder */
+#mode{align-items:center;justify-content:center;text-align:center}
+#mode h1{font-size:30px;margin:0 0 8px}
+#mode p{color:var(--mute);margin:0 0 24px;max-width:320px}
+.soon{color:var(--gold);font-weight:700;letter-spacing:1px;margin-bottom:6px}
+
+/* Shared headings + segment */
+.screen h1{font-size:28px;margin:8px 0 4px;text-align:center}
+.screen .sub{color:var(--mute);text-align:center;margin:0 0 12px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.seg button.on{background:var(--accent);border-color:var(--accent);font-weight:700}
+.msg{min-height:48px;text-align:center;color:var(--gold);margin:10px 0;font-size:15px}
+.search{width:100%;padding:12px 14px;border-radius:12px;border:2px solid var(--mute);background:var(--panel);color:var(--chalk);font:inherit;margin:6px 0 4px;outline:none}
+.search::placeholder{color:var(--mute)}
+
+/* Cards: normal + diamond (107-110) */
+.card{border-radius:12px;padding:12px;margin:8px 0;background:var(--panel);display:flex;justify-content:space-between;align-items:center}
+.card small{color:var(--mute);font-size:13px;display:block}
+.card .ovr{font-size:24px;font-weight:800;color:var(--gold)}
+.diamond{background:linear-gradient(135deg,#e8fbff 0%,#8fe3ff 35%,#ffffff 55%,#6ab8ff 100%);color:#06263a;border:2px solid #ffffff;box-shadow:0 0 18px #8fe3ff}
+.diamond small{color:#144a66}
+.diamond .ovr{color:#06263a}
+.pullwrap{height:260px;overflow-y:auto}
+.pending{height:100%;display:flex;align-items:center;justify-content:center;color:var(--mute)}
+
+/* Welcome Draft */
+.draftbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.draftbtns button{font-weight:700;font-size:16px;padding:14px 8px}
+.draftbox{background:var(--panel);border-radius:14px;padding:14px;margin-top:6px}
+.draftbox h3{margin:0 0 10px;font-size:17px;color:var(--gold)}
+.draftbox .empty{color:var(--mute);font-size:14px}
+
+/* Dream team */
+.dtrate{font-size:30px;font-weight:800;color:var(--gold);text-align:center;margin:6px 0 10px}
+.slot-empty{opacity:.55}
+
+/* Shop + lists */
+.sechead{margin:18px 0 6px;font-size:17px;color:var(--gold)}
+.tiernote{color:var(--mute);font-size:13px;font-weight:400;margin-left:6px}
+.player-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #2c4a62}
+.player-row:last-child{border-bottom:none}
+.player-row small{color:var(--mute);font-size:13px}
+.player-row button{white-space:nowrap;font-weight:700;padding:10px 12px}
+.player-row button:disabled{opacity:.3}
+.player-row.owned{opacity:.5}
+.marketbox{background:var(--panel);border-radius:14px;padding:6px 14px;margin-bottom:12px}
+.none{color:var(--mute);text-align:center;padding:12px 0;font-size:14px}
+
+/* Walkout overlay */
+#walk{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:50;background:radial-gradient(circle at center,#2a5a7a 0%,#0b1822 70%,#050d14 100%);padding:20px}
+#walk.on{display:flex}
+#walk .wl{font-size:15px;letter-spacing:8px;color:#8fe3ff;animation:pop .6s ease-out both}
+#walk .wr{font-size:88px;font-weight:900;line-height:1;margin:14px 0 6px;background:linear-gradient(90deg,#bfefff,#ffffff,#6ab8ff);-webkit-background-clip:text;background-clip:text;color:transparent;animation:pop 1s .5s ease-out both}
+#walk .wn{font-size:24px;font-weight:700;animation:pop .8s .9s ease-out both}
+#walk .wrole{color:var(--mute);font-size:14px;margin-top:4px;animation:pop .8s 1.1s ease-out both}
+#walk button{margin-top:30px;animation:pop .6s 1.4s ease-out both}
+@keyframes pop{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
+.pickbtn{width:100%;text-align:left;margin:8px 0;font-weight:700;font-size:16px;padding:16px}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<section id="loading" class="screen on">
+  <h1 class="logo">HC <span>MOBILE</span></h1>
+  <div class="bar"><i></i></div>
+  <div class="tip">Loading...</div>
+</section>
+
+<!-- WELCOME -->
+<section id="welcome" class="screen">
+  <h1>Welcome to HC Mobile</h1>
+  <p>Hand cricket, reimagined. Pick a mode and play.</p>
+  <button class="primary" id="startBtn">Start</button>
+</section>
+
+<!-- CREDITS -->
+<section id="credits" class="screen cricket-bg">
+  <div class="cred-wrap">
+    <h1>HC Mobile</h1>
+    <p class="sub">Hand cricket, reimagined</p>
+    <div class="cred-label">Inspired by</div>
+    <div class="cred-name">Electronic Arts</div>
+    <p class="cred-note">EA SPORTS FC&trade; Mobile is an Electronic Arts game. This is an unofficial private fan project. Electronic Arts Inc. owns the EA and EA SPORTS FC trademarks.</p>
+    <div class="cred-label">Built with</div>
+    <div class="cred-name">Claude</div>
+    <p class="cred-note">Made with Claude by Anthropic.</p>
+    <button class="primary" id="creditsBtn">Continue</button>
+  </div>
+</section>
+
+<!-- HOME -->
+<section id="home" class="screen cricket-bg">
+  <div class="cur">
+    <span>🪙 <b data-c="coins"></b></span>
+    <span>💎 <b data-c="gems"></b></span>
+    <span>🎟️ <b data-c="tokens"></b></span>
+  </div>
+
+  <div class="box">
+    <h2>PLAYZONES</h2>
+    <div class="grid" id="modeGrid"></div>
+  </div>
+
+  <div class="box">
+    <h2>WELCOME DRAFT</h2>
+    <p class="sub">Spend draft tokens to draft players, up to 110 OVR.</p>
+    <button class="primary" id="goDraft">Open Welcome Draft</button>
+  </div>
+
+  <div class="box">
+    <h2>DREAM TEAM</h2>
+    <p class="sub">Your best XI from the players you own.</p>
+    <button class="primary" id="goDream">Open Dream Team</button>
+  </div>
+
+  <div class="box">
+    <h2>SHOP</h2>
+    <p class="sub">Buy players with coins, or sign them with gems.</p>
+    <button class="primary" id="goShop">Open Shop</button>
+  </div>
+</section>
+
+<!-- MODE placeholder -->
+<section id="mode" class="screen">
+  <button class="back" data-go="home">&larr; Home</button>
+  <div class="soon">COMING SOON</div>
+  <h1 id="modeTitle"></h1>
+  <p id="modeDesc"></p>
+</section>
+
+<!-- WELCOME DRAFT -->
+<section id="draft" class="screen">
+  <button class="back" data-go="home">&larr; Home</button>
+  <h1>Welcome Draft</h1>
+  <p class="sub">Draft players up to 110 OVR. 107+ is a walkout.</p>
+
+  <div class="cur">
+    <span>🪙 <b data-c="coins"></b></span>
+    <span>💎 <b data-c="gems"></b></span>
+    <span>🎟️ <b data-c="tokens"></b></span>
+  </div>
+
+  <div class="seg">
+    <button id="selMen">Men</button>
+    <button id="selWomen">Women</button>
+  </div>
+
+  <div class="draftbtns">
+    <button class="primary" id="draft1">Draft 1<br><small>1 🎟️</small></button>
+    <button class="primary" id="draft10">Draft 10<br><small>10 🎟️</small></button>
+  </div>
+  <button class="full" id="allBtn">All Draft Players</button>
+
+  <div class="msg" id="msg"></div>
+  <div class="pullwrap" id="pull"></div>
+
+  <div class="draftbox">
+    <h3 id="boxTitle">Men's Draft</h3>
+    <div id="myList"></div>
+  </div>
+</section>
+
+<!-- ALL DRAFT PLAYERS -->
+<section id="pool" class="screen">
+  <button class="back" data-go="draft">&larr; Welcome Draft</button>
+  <h1>All Draft Players</h1>
+  <p class="sub">Every player in this draft pool, by tier.</p>
+
+  <div class="seg">
+    <button id="plMen">Men</button>
+    <button id="plWomen">Women</button>
+  </div>
+  <input type="search" class="search" id="poolSearch" placeholder="Search players">
+
+  <div id="poolList"></div>
+</section>
+
+<!-- PICKER -->
+<section id="pick" class="screen">
+  <button class="back" id="pickBack">&larr; Back</button>
+  <h1 id="pickTitle"></h1>
+  <p class="sub" id="pickSub"></p>
+  <div class="seg" id="pickSeg"></div>
+  <div id="pickList"></div>
+</section>
+
+<!-- DREAM TEAM -->
+<section id="dream" class="screen">
+  <button class="back" id="dreamBack">&larr; Back</button>
+  <h1 id="dreamTitle"></h1>
+  <p class="sub" id="dreamSub"></p>
+  <div class="dtrate" id="dtRate">TPR 0</div>
+  <div id="dtList"></div>
+</section>
+
+<!-- SHOP -->
+<section id="shop" class="screen">
+  <button class="back" data-go="home">&larr; Home</button>
+  <h1>Shop</h1>
+  <p class="sub">Coins and gems are separate. Each buys from its own list.</p>
+
+  <div class="cur">
+    <span>🪙 <b data-c="coins"></b></span>
+    <span>💎 <b data-c="gems"></b></span>
+    <span>🎟️ <b data-c="tokens"></b></span>
+  </div>
+
+  <div class="seg">
+    <button id="shMen">Men</button>
+    <button id="shWomen">Women</button>
+  </div>
+  <input type="search" class="search" id="shopSearch" placeholder="Search players">
+
+  <h3 class="sechead">Coin Market 🪙</h3>
+  <div class="marketbox" id="coinMarket"></div>
+
+  <h3 class="sechead">Gem Signings 💎</h3>
+  <div class="marketbox" id="gemMarket"></div>
+
+  <div class="msg" id="shopMsg"></div>
+</section>
+
+<!-- WALKOUT overlay -->
+<div id="walk">
+  <div class="wl">WALKOUT</div>
+  <div class="wr" id="walkOvr"></div>
+  <div class="wn" id="walkName"></div>
+  <div class="wrole" id="walkRole"></div>
+  <button class="primary" id="walkBtn">Continue</button>
+</div>
+
+<script>
+/* ============ DATA: men from Cricket Players OVR database (Event OVR). Women: placeholder ratings. Format: [name, role, rating] ============ */
+const PLAYERS = {
+  men: [
+    ["Sachin Tendulkar", "BAT", 104, ["India"]],
+    ["MS Dhoni", "WK", 110, ["India", "Chennai Super Kings"]],
+    ["Virat Kohli", "BAT", 103, ["India", "Royal Challengers Bengaluru"]],
+    ["Jasprit Bumrah", "BOWL", 102, ["India", "Mumbai Indians"]],
+    ["Rohit Sharma", "BAT", 101, ["India", "Mumbai Indians"]],
+    ["Sunil Gavaskar", "BAT", 101, ["India"]],
+    ["Rahul Dravid", "BAT", 101, ["India"]],
+    ["Kapil Dev", "AR", 100, ["India"]],
+    ["Anil Kumble", "BOWL", 100, ["India"]],
+    ["Virender Sehwag", "BAT", 100, ["India"]],
+    ["Yuvraj Singh", "AR", 99, ["India"]],
+    ["Suryakumar Yadav", "BAT", 99, ["India", "Mumbai Indians"]],
+    ["Ravichandran Ashwin", "AR", 99, ["India"]],
+    ["Ravindra Jadeja", "AR", 98, ["India", "Rajasthan Royals"]],
+    ["Hardik Pandya", "AR", 97, ["India", "Mumbai Indians"]],
+    ["Shubman Gill", "BAT", 97, ["India", "Gujarat Titans"]],
+    ["Rishabh Pant", "WK", 97, ["India", "Lucknow Super Giants"]],
+    ["Yashasvi Jaiswal", "BAT", 95, ["India", "Rajasthan Royals"]],
+    ["Mohammed Shami", "BOWL", 97, ["India", "Lucknow Super Giants"]],
+    ["Kuldeep Yadav", "BOWL", 95, ["India", "Delhi Capitals"]],
+    ["Sir Don Bradman", "BAT", 110, ["Australia"]],
+    ["Shane Warne", "BOWL", 104, ["Australia"]],
+    ["Ricky Ponting", "BAT", 102, ["Australia"]],
+    ["Glenn McGrath", "BOWL", 102, ["Australia"]],
+    ["Adam Gilchrist", "WK", 102, ["Australia"]],
+    ["Steve Waugh", "BAT", 100, ["Australia"]],
+    ["Matthew Hayden", "BAT", 100, ["Australia"]],
+    ["Brett Lee", "BOWL", 99, ["Australia"]],
+    ["Steve Smith", "BAT", 101, ["Australia"]],
+    ["Pat Cummins", "BOWL", 100, ["Australia", "Sunrisers Hyderabad"]],
+    ["Mitchell Starc", "BOWL", 99, ["Australia", "Delhi Capitals"]],
+    ["Travis Head", "BAT", 98, ["Australia", "Sunrisers Hyderabad"]],
+    ["David Warner", "BAT", 98, ["Australia"]],
+    ["Glenn Maxwell", "AR", 97, ["Australia"]],
+    ["Josh Hazlewood", "BOWL", 96, ["Australia", "Royal Challengers Bengaluru"]],
+    ["Sir Garfield Sobers", "AR", 104, ["West Indies"]],
+    ["Sir Vivian Richards", "BAT", 103, ["West Indies"]],
+    ["Brian Lara", "BAT", 103, ["West Indies"]],
+    ["Malcolm Marshall", "BOWL", 101, ["West Indies"]],
+    ["Curtly Ambrose", "BOWL", 101, ["West Indies"]],
+    ["Chris Gayle", "BAT", 100, ["West Indies"]],
+    ["Sunil Narine", "AR", 98, ["West Indies", "Kolkata Knight Riders"]],
+    ["Andre Russell", "AR", 98, ["West Indies"]],
+    ["Nicholas Pooran", "WK", 96, ["West Indies", "Lucknow Super Giants"]],
+    ["Kieron Pollard", "AR", 97, ["West Indies"]],
+    ["Wasim Akram", "BOWL", 102, ["Pakistan"]],
+    ["Imran Khan", "AR", 102, ["Pakistan"]],
+    ["Waqar Younis", "BOWL", 101, ["Pakistan"]],
+    ["Inzamam-ul-Haq", "BAT", 99, ["Pakistan"]],
+    ["Javed Miandad", "BAT", 100, ["Pakistan"]],
+    ["Shoaib Akhtar", "BOWL", 99, ["Pakistan"]],
+    ["Shahid Afridi", "AR", 98, ["Pakistan"]],
+    ["Babar Azam", "BAT", 98, ["Pakistan"]],
+    ["Shaheen Afridi", "BOWL", 97, ["Pakistan"]],
+    ["Mohammad Rizwan", "WK", 96, ["Pakistan"]],
+    ["Jacques Kallis", "AR", 103, ["South Africa"]],
+    ["AB de Villiers", "BAT", 102, ["South Africa"]],
+    ["Dale Steyn", "BOWL", 101, ["South Africa"]],
+    ["Allan Donald", "BOWL", 100, ["South Africa"]],
+    ["Shaun Pollock", "AR", 99, ["South Africa"]],
+    ["Kagiso Rabada", "BOWL", 97, ["South Africa", "Gujarat Titans"]],
+    ["Quinton de Kock", "WK", 96, ["South Africa"]],
+    ["Heinrich Klaasen", "BAT", 97, ["South Africa", "Sunrisers Hyderabad"]],
+    ["Sir Jack Hobbs", "BAT", 102, ["England"]],
+    ["W.G. Grace", "AR", 101, ["England"]],
+    ["Sir Alastair Cook", "BAT", 100, ["England"]],
+    ["James Anderson", "BOWL", 100, ["England"]],
+    ["Stuart Broad", "BOWL", 99, ["England"]],
+    ["Joe Root", "BAT", 101, ["England"]],
+    ["Ben Stokes", "AR", 99, ["England"]],
+    ["Jos Buttler", "WK", 98, ["England", "Gujarat Titans"]],
+    ["Phil Salt", "BAT", 94, ["England", "Royal Challengers Bengaluru"]],
+    ["Muttiah Muralitharan", "BOWL", 103, ["Sri Lanka"]],
+    ["Kumar Sangakkara", "WK", 102, ["Sri Lanka"]],
+    ["Mahela Jayawardene", "BAT", 100, ["Sri Lanka"]],
+    ["Sanath Jayasuriya", "AR", 100, ["Sri Lanka"]],
+    ["Lasith Malinga", "BOWL", 100, ["Sri Lanka"]],
+    ["Sir Richard Hadlee", "BOWL", 102, ["New Zealand"]],
+    ["Kane Williamson", "BAT", 100, ["New Zealand"]],
+    ["Trent Boult", "BOWL", 97, ["New Zealand", "Mumbai Indians"]],
+    ["Rachin Ravindra", "AR", 93, ["New Zealand"]],
+    ["Rashid Khan", "AR", 98, ["Afghanistan", "Gujarat Titans"]],
+    ["Mohammad Nabi", "AR", 91, ["Afghanistan"]],
+    ["Rahmanullah Gurbaz", "WK", 90, ["Afghanistan"]],
+    ["Shakib Al Hasan", "AR", 98, ["Bangladesh"]],
+    ["Mustafizur Rahman", "BOWL", 92, ["Bangladesh"]],
+    ["Adam Zampa", "BOWL", 96, ["Australia"]],
+    ["Josh Inglis", "WK", 94, ["Australia"]],
+    ["Jofra Archer", "BOWL", 97, ["England", "Rajasthan Royals"]],
+    ["Harry Brook", "BAT", 96, ["England"]],
+    ["Adil Rashid", "BOWL", 95, ["England"]],
+    ["Haris Rauf", "BOWL", 95, ["Pakistan"]],
+    ["Shadab Khan", "AR", 94, ["Pakistan"]],
+    ["Fakhar Zaman", "BAT", 94, ["Pakistan"]],
+    ["Aiden Markram", "AR", 95, ["South Africa", "Lucknow Super Giants"]],
+    ["Anrich Nortje", "BOWL", 95, ["South Africa"]],
+    ["Marco Jansen", "AR", 94, ["South Africa", "Punjab Kings"]],
+    ["Daryl Mitchell", "AR", 95, ["New Zealand"]],
+    ["Devon Conway", "WK", 95, ["New Zealand"]],
+    ["Mitchell Santner", "AR", 94, ["New Zealand", "Mumbai Indians"]],
+    ["Shai Hope", "BAT", 94, ["West Indies"]],
+    ["Alzarri Joseph", "BOWL", 94, ["West Indies"]],
+    ["Shimron Hetmyer", "BAT", 93, ["West Indies", "Rajasthan Royals"]],
+    ["Wanindu Hasaranga", "AR", 96, ["Sri Lanka", "Lucknow Super Giants"]],
+    ["Pathum Nissanka", "BAT", 94, ["Sri Lanka"]],
+    ["Kusal Mendis", "WK", 93, ["Sri Lanka"]],
+    ["Maheesh Theekshana", "BOWL", 93, ["Sri Lanka"]],
+    ["Matheesha Pathirana", "BOWL", 93, ["Sri Lanka", "Kolkata Knight Riders"]],
+    ["Azmatullah Omarzai", "AR", 91, ["Afghanistan"]],
+    ["Fazalhaq Farooqi", "BOWL", 91, ["Afghanistan"]],
+    ["Litton Das", "WK", 91, ["Bangladesh"]],
+    ["Taskin Ahmed", "BOWL", 91, ["Bangladesh"]],
+    ["Towhid Hridoy", "BAT", 89, ["Bangladesh"]],
+    ["Paul Stirling", "BAT", 91, ["Ireland"]],
+    ["Andrew Balbirnie", "BAT", 87, ["Ireland"]],
+    ["Lorcan Tucker", "WK", 88, ["Ireland"]],
+    ["Harry Tector", "BAT", 90, ["Ireland"]],
+    ["Curtis Campher", "AR", 88, ["Ireland"]],
+    ["George Dockrell", "AR", 87, ["Ireland"]],
+    ["Gareth Delany", "AR", 86, ["Ireland"]],
+    ["Mark Adair", "AR", 89, ["Ireland"]],
+    ["Barry McCarthy", "BOWL", 88, ["Ireland"]],
+    ["Josh Little", "BOWL", 90, ["Ireland"]],
+    ["Ben White", "BOWL", 85, ["Ireland"]],
+    ["Michael Levitt", "BAT", 86, ["Netherlands"]],
+    ["Max O'Dowd", "BAT", 87, ["Netherlands"]],
+    ["Vikramjit Singh", "AR", 86, ["Netherlands"]],
+    ["Bas de Leede", "AR", 90, ["Netherlands"]],
+    ["Scott Edwards", "WK", 89, ["Netherlands"]],
+    ["Teja Nidamanuru", "BAT", 86, ["Netherlands"]],
+    ["Logan van Beek", "AR", 88, ["Netherlands"]],
+    ["Aryan Dutt", "BOWL", 88, ["Netherlands"]],
+    ["Paul van Meekeren", "BOWL", 88, ["Netherlands"]],
+    ["Vivian Kingma", "BOWL", 85, ["Netherlands"]],
+    ["Fred Klaassen", "BOWL", 87, ["Netherlands"]],
+    ["Steven Taylor", "AR", 86, ["USA"]],
+    ["Monank Patel", "WK", 87, ["USA"]],
+    ["Andries Gous", "WK", 87, ["USA"]],
+    ["Aaron Jones", "BAT", 88, ["USA"]],
+    ["Nitish Kumar", "BAT", 84, ["USA"]],
+    ["Corey Anderson", "AR", 87, ["USA"]],
+    ["Harmeet Singh", "AR", 86, ["USA"]],
+    ["Shadley van Schalkwyk", "AR", 84, ["USA"]],
+    ["Jasdeep \"Jessy\" Singh", "BOWL", 84, ["USA"]],
+    ["Saurabh Netravalkar", "BOWL", 88, ["USA"]],
+    ["Ali Khan", "BOWL", 88, ["USA"]],
+    ["Ruturaj Gaikwad", "BAT", 95, ["Chennai Super Kings"]],
+    ["Sanju Samson", "WK", 95, ["Chennai Super Kings"]],
+    ["Ayush Mhatre", "BAT", 86, ["Chennai Super Kings"]],
+    ["Shivam Dube", "AR", 93, ["Chennai Super Kings"]],
+    ["Dewald Brevis", "BAT", 89, ["Chennai Super Kings"]],
+    ["Jamie Overton", "AR", 88, ["Chennai Super Kings"]],
+    ["Anshul Kamboj", "BOWL", 86, ["Chennai Super Kings"]],
+    ["Khaleel Ahmed", "BOWL", 90, ["Chennai Super Kings"]],
+    ["Noor Ahmad", "BOWL", 91, ["Chennai Super Kings"]],
+    ["Nathan Ellis", "BOWL", 90, ["Chennai Super Kings"]],
+    ["Ryan Rickelton", "WK", 89, ["Mumbai Indians"]],
+    ["Tilak Varma", "BAT", 92, ["Mumbai Indians"]],
+    ["Naman Dhir", "AR", 87, ["Mumbai Indians"]],
+    ["Will Jacks", "AR", 92, ["Mumbai Indians"]],
+    ["Deepak Chahar", "BOWL", 90, ["Mumbai Indians"]],
+    ["Rajat Patidar", "BAT", 91, ["Royal Challengers Bengaluru"]],
+    ["Venkatesh Iyer", "AR", 91, ["Royal Challengers Bengaluru"]],
+    ["Krunal Pandya", "AR", 91, ["Royal Challengers Bengaluru"]],
+    ["Tim David", "BAT", 94, ["Royal Challengers Bengaluru"]],
+    ["Jitesh Sharma", "WK", 90, ["Royal Challengers Bengaluru"]],
+    ["Romario Shepherd", "AR", 89, ["Royal Challengers Bengaluru"]],
+    ["Bhuvneshwar Kumar", "BOWL", 93, ["Royal Challengers Bengaluru"]],
+    ["Yash Dayal", "BOWL", 88, ["Royal Challengers Bengaluru"]],
+    ["Finn Allen", "BAT", 91, ["Kolkata Knight Riders"]],
+    ["Ajinkya Rahane", "BAT", 90, ["Kolkata Knight Riders"]],
+    ["Angkrish Raghuvanshi", "BAT", 87, ["Kolkata Knight Riders"]],
+    ["Cameron Green", "AR", 93, ["Kolkata Knight Riders"]],
+    ["Rinku Singh", "BAT", 93, ["Kolkata Knight Riders"]],
+    ["Ramandeep Singh", "AR", 86, ["Kolkata Knight Riders"]],
+    ["Harshit Rana", "BOWL", 89, ["Kolkata Knight Riders"]],
+    ["Varun Chakravarthy", "BOWL", 93, ["Kolkata Knight Riders"]],
+    ["Vaibhav Arora", "BOWL", 87, ["Kolkata Knight Riders"]],
+    ["Abhishek Sharma", "BOWL", 92, ["Sunrisers Hyderabad"]],
+    ["Ishan Kishan", "WK", 93, ["Sunrisers Hyderabad"]],
+    ["Nitish Kumar Reddy", "AR", 90, ["Sunrisers Hyderabad"]],
+    ["Liam Livingstone", "BAT", 94, ["Sunrisers Hyderabad"]],
+    ["Aniket Verma", "BAT", 84, ["Sunrisers Hyderabad"]],
+    ["Harshal Patel", "BOWL", 91, ["Sunrisers Hyderabad"]],
+    ["Harsh Dubey", "BOWL", 85, ["Sunrisers Hyderabad"]],
+    ["Jaydev Unadkat", "BOWL", 87, ["Sunrisers Hyderabad"]],
+    ["Vaibhav Suryavanshi", "BAT", 84, ["Rajasthan Royals"]],
+    ["Riyan Parag", "BAT", 92, ["Rajasthan Royals"]],
+    ["Dhruv Jurel", "WK", 90, ["Rajasthan Royals"]],
+    ["Sam Curran", "AR", 94, ["Rajasthan Royals"]],
+    ["Ravi Bishnoi", "BOWL", 93, ["Rajasthan Royals"]],
+    ["Sandeep Sharma", "BOWL", 90, ["Rajasthan Royals"]],
+    ["Nandre Burger", "BAT", 89, ["Rajasthan Royals"]],
+    ["Sai Sudharsan", "BAT", 92, ["Gujarat Titans"]],
+    ["Glenn Phillips", "AR", 93, ["Gujarat Titans"]],
+    ["Washington Sundar", "AR", 90, ["Gujarat Titans"]],
+    ["Shahrukh Khan", "BAT", 87, ["Gujarat Titans"]],
+    ["Rahul Tewatia", "AR", 89, ["Gujarat Titans"]],
+    ["Mohammed Siraj", "BOWL", 95, ["Gujarat Titans"]],
+    ["Prasidh Krishna", "BOWL", 91, ["Gujarat Titans"]],
+    ["Prithvi Shaw", "BAT", 89, ["Delhi Capitals"]],
+    ["KL Rahul", "WK", 96, ["Delhi Capitals"]],
+    ["Nitish Rana", "BAT", 90, ["Delhi Capitals"]],
+    ["Tristan Stubbs", "BAT", 92, ["Delhi Capitals"]],
+    ["David Miller", "BAT", 94, ["Delhi Capitals"]],
+    ["Ashutosh Sharma", "BAT", 89, ["Delhi Capitals"]],
+    ["Axar Patel", "AR", 94, ["Delhi Capitals"]],
+    ["T. Natarajan", "BOWL", 91, ["Delhi Capitals"]],
+    ["Mukesh Kumar", "BOWL", 89, ["Delhi Capitals"]],
+    ["Prabhsimran Singh", "WK", 88, ["Punjab Kings"]],
+    ["Priyansh Arya", "BAT", 85, ["Punjab Kings"]],
+    ["Shreyas Iyer", "BAT", 94, ["Punjab Kings"]],
+    ["Marcus Stoinis", "AR", 95, ["Punjab Kings"]],
+    ["Nehal Wadhera", "BAT", 89, ["Punjab Kings"]],
+    ["Shashank Singh", "BAT", 90, ["Punjab Kings"]],
+    ["Harpreet Brar", "AR", 88, ["Punjab Kings"]],
+    ["Lockie Ferguson", "BOWL", 93, ["Punjab Kings"]],
+    ["Yuzvendra Chahal", "BOWL", 95, ["Punjab Kings"]],
+    ["Arshdeep Singh", "BOWL", 93, ["Punjab Kings"]],
+    ["Mitchell Marsh", "AR", 94, ["Lucknow Super Giants"]],
+    ["Ayush Badoni", "BAT", 88, ["Lucknow Super Giants"]],
+    ["Abdul Samad", "BAT", 87, ["Lucknow Super Giants"]],
+    ["Shahbaz Ahmed", "AR", 88, ["Lucknow Super Giants"]],
+    ["Mayank Yadav", "BOWL", 92, ["Lucknow Super Giants"]],
+    ["Avesh Khan", "BOWL", 90, ["Lucknow Super Giants"]]
+  ],
+  women: [
+    ["Ellyse Perry", "AR", 93, ["Australia"]],
+    ["Meg Lanning", "BAT", 92, ["Australia"]],
+    ["Alyssa Healy", "WK", 91, ["Australia"]],
+    ["Smriti Mandhana", "BAT", 91, ["India"]],
+    ["Nat Sciver-Brunt", "AR", 90, ["England"]],
+    ["Jhulan Goswami", "BOWL", 90, ["India"]],
+    ["Mithali Raj", "BAT", 90, ["India"]],
+    ["Harmanpreet Kaur", "BAT", 89, ["India"]],
+    ["Sophie Ecclestone", "BOWL", 89, ["England"]],
+    ["Beth Mooney", "BAT", 88, ["Australia"]],
+    ["Laura Wolvaardt", "BAT", 88, ["South Africa"]],
+    ["Ashleigh Gardner", "AR", 88, ["Australia"]],
+    ["Hayley Matthews", "AR", 88, ["West Indies"]],
+    ["Deepti Sharma", "AR", 87, ["India"]],
+    ["Heather Knight", "BAT", 87, ["England"]],
+    ["Shafali Verma", "BAT", 86, ["India"]],
+    ["Marizanne Kapp", "AR", 86, ["South Africa"]],
+    ["Charlotte Edwards", "BAT", 86, ["England"]],
+    ["Chamari Athapaththu", "BAT", 85, ["Sri Lanka"]],
+    ["Megan Schutt", "BOWL", 85, ["Australia"]],
+    ["Stafanie Taylor", "AR", 85, ["West Indies"]],
+    ["Karen Rolton", "BAT", 88, ["Australia"]],
+    ["Richa Ghosh", "WK", 84, ["India"]],
+    ["Renuka Singh", "BOWL", 84, ["India"]]
+  ]
+};
+const IPL_TEAMS = ["Chennai Super Kings", "Mumbai Indians", "Royal Challengers Bengaluru", "Kolkata Knight Riders", "Sunrisers Hyderabad", "Rajasthan Royals", "Gujarat Titans", "Delhi Capitals", "Punjab Kings", "Lucknow Super Giants"];
+function countriesOf(g) {
+  const s = new Set();
+  PLAYERS[g].forEach(p => p[3].forEach(t => { if (!IPL_TEAMS.includes(t)) s.add(t); }));
+  return [...s].sort();
+}
+const ROLE = { BAT: "Batter", WK: "Wicketkeeper", AR: "All-rounder", BOWL: "Bowler" };
+const NEED = { BAT: 4, WK: 1, AR: 2, BOWL: 4 }; // Dream Team XI shape
+const WALKOUT_MIN = 107;
+
+/* Draft tiers for the All Draft Players view */
+const TIERS = [
+  { label: "Top A", test: r => r >= 107 },
+  { label: "Top B", test: r => r >= 90 && r < 107 },
+  { label: "Top C", test: r => r < 90, note: "50,000 coins · 98%" }
+];
+
+/* Draft odds: higher OVR is rarer. Walkouts (107+) are the rarest. */
+const weightOf = r => r >= WALKOUT_MIN ? 1 : r >= 100 ? 6 : r >= 90 ? 16 : 40;
+const isDiamond = r => r >= WALKOUT_MIN;
+
+/* Shop prices. Coins buy from the Coin Market, gems sign from the Gem Signings list. */
+const coinPrice = r => r >= WALKOUT_MIN ? 2000 : r >= 90 ? 1000 : r >= 85 ? 500 : 200;
+const gemPrice  = r => r >= WALKOUT_MIN ? 300  : r >= 90 ? 100  : r >= 85 ? 50  : 20;
+
+/* ============ SAVE STATE ============ */
+const DEFAULTS = { coins: 1000, gems: 100, tokens: 10, own: { men: [], women: [] } };
+let state = JSON.parse(JSON.stringify(DEFAULTS));
+try {
+  const saved = JSON.parse(localStorage.getItem("hc_mobile"));
+  if (saved) state = Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), saved);
+} catch (e) {}
+function save() {
+  try { localStorage.setItem("hc_mobile", JSON.stringify(state)); } catch (e) {}
+}
+
+/* ============ HELPERS ============ */
+const findPlayer = (g, name) => PLAYERS[g].find(p => p[0] === name);
+const ownedPlayers = g => state.own[g].map(n => findPlayer(g, n)).filter(Boolean);
+const sortedPlayers = g => PLAYERS[g].slice().sort((a, b) => b[2] - a[2]);
+const matches = (p, q) => !q || p[0].toLowerCase().includes(q.trim().toLowerCase());
+function cardHTML(p, extra = "") {
+  return `<div class="card ${isDiamond(p[2]) ? "diamond" : ""}">
+    <div>${p[0]}<small>${ROLE[p[1]]}${extra}</small></div>
+    <div class="ovr">${p[2]}</div>
+  </div>`;
+}
+
+/* ============ SCREENS ============ */
+function show(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id));
+  renderAll();
+}
+document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => show(b.dataset.go));
+
+function renderCur() {
+  document.querySelectorAll("[data-c]").forEach(el => el.textContent = state[el.dataset.c]);
+}
+function renderAll() {
+  renderCur();
+  renderDraft();
+  renderPool();
+  renderDream();
+  renderShop();
+}
+
+/* ============ PLAYZONES ============ */
+const MODES = [
+  { name: "1v1",         desc: "Head-to-head, one player against one player." },
+  { name: "2v2",         desc: "Two players per side, team against team." },
+  { name: "3v3",         desc: "Three players per side, team against team." },
+  { name: "Tournament",  desc: "Knockout cup. Win each round to reach the final." },
+  { name: "IPL Match",   desc: "IPL-style match with IPL squads." },
+  { name: "WCC Men's",   desc: "Men's World Cup Cricket mode." },
+  { name: "WCC Women's", desc: "Women's World Cup Cricket mode." }
+];
+const grid = document.getElementById("modeGrid");
+MODES.forEach((m, i) => {
+  const b = document.createElement("button");
+  b.textContent = m.name;
+  if (i === MODES.length - 1 && MODES.length % 2 === 1) b.classList.add("wide");
+  b.onclick = () => startMode(m);
+  grid.appendChild(b);
+});
+function openMode(m) {
+  document.getElementById("modeTitle").textContent = m.name;
+  document.getElementById("modeDesc").textContent = m.desc;
+  show("mode");
+}
+
+/* ============ WALKOUT ============ */
+const walk = document.getElementById("walk");
+let walkDone = null;
+function playWalkout(p, done) {
+  document.getElementById("walkOvr").textContent = p[2];
+  document.getElementById("walkName").textContent = p[0];
+  document.getElementById("walkRole").textContent = ROLE[p[1]];
+  walkDone = done;
+  walk.classList.add("on");
+}
+document.getElementById("walkBtn").onclick = () => {
+  walk.classList.remove("on");
+  if (walkDone) { const cb = walkDone; walkDone = null; cb(); }
+};
+// Play one walkout after another, then run done()
+function runWalkouts(list, done) {
+  if (!list.length) return done();
+  const [first, ...rest] = list;
+  playWalkout(first, () => runWalkouts(rest, done));
+}
+
+/* ============ WELCOME DRAFT ============ */
+let group = "men";
+const msgEl = document.getElementById("msg");
+const pullEl = document.getElementById("pull");
+function setMsg(t) { msgEl.textContent = t; }
+
+function renderDraft() {
+  document.getElementById("selMen").classList.toggle("on", group === "men");
+  document.getElementById("selWomen").classList.toggle("on", group === "women");
+  document.getElementById("boxTitle").textContent = (group === "men" ? "Men's" : "Women's") + " Draft";
+  document.getElementById("draft1").disabled = state.tokens < 1;
+  document.getElementById("draft10").disabled = state.tokens < 10;
+
+  const owned = ownedPlayers(group);
+  document.getElementById("myList").innerHTML = owned.length
+    ? owned.map(p => cardHTML(p)).join("")
+    : `<div class="empty">No players drafted yet.</div>`;
+}
+function setGroup(g) { group = g; setMsg(""); pullEl.innerHTML = ""; renderAll(); }
+document.getElementById("selMen").onclick = () => setGroup("men");
+document.getElementById("selWomen").onclick = () => setGroup("women");
+
+function weightedPick(pool) {
+  const total = pool.reduce((s, p) => s + weightOf(p[2]), 0);
+  let r = Math.random() * total;
+  for (const p of pool) {
+    r -= weightOf(p[2]);
+    if (r <= 0) return p;
+  }
+  return pool[pool.length - 1];
+}
+
+// Draft n players at once. Each one is a different player the team does not own yet.
+let busy = false;
+function draftN(n) {
+  if (busy) return;
+  const available = PLAYERS[group].filter(p => !state.own[group].includes(p[0]));
+  if (!available.length) return setMsg("You already have every player in this pool.");
+  const count = Math.min(n, available.length);
+  if (state.tokens < count) return setMsg(`Need ${count} draft tokens.`);
+
+  const pulls = [];
+  const remaining = available.slice();
+  for (let i = 0; i < count; i++) {
+    const pick = weightedPick(remaining);
+    pulls.push(pick);
+    remaining.splice(remaining.indexOf(pick), 1);
+    state.own[group].push(pick[0]);
+  }
+  state.tokens -= count;
+  save();
+
+  busy = true;
+  setMsg("");
+  pullEl.innerHTML = '<div class="pending">Drafting...</div>';
+  renderAll();
+  setTimeout(() => {
+    const walkouts = pulls.filter(p => isDiamond(p[2]));
+    runWalkouts(walkouts, () => { busy = false; showPulls(pulls, count < n); });
+  }, 800);
+}
+
+function showPulls(pulls, shortOfRequest) {
+  const sorted = pulls.slice().sort((a, b) => b[2] - a[2]);
+  const walkCount = pulls.filter(p => isDiamond(p[2])).length;
+  let text = `Drafted ${pulls.length} player${pulls.length > 1 ? "s" : ""}.`;
+  if (walkCount) text += ` ${walkCount} walkout${walkCount > 1 ? "s" : ""}!`;
+  if (shortOfRequest) text += " The pool ran out, so you got all that were left.";
+  setMsg(text);
+  pullEl.innerHTML = sorted.map(p => cardHTML(p)).join("");
+}
+
+document.getElementById("draft1").onclick = () => draftN(1);
+document.getElementById("draft10").onclick = () => draftN(10);
+document.getElementById("goDraft").onclick = () => show("draft");
+document.getElementById("allBtn").onclick = () => {
+  plGroup = group;
+  document.getElementById("poolSearch").value = "";
+  poolQuery = "";
+  show("pool");
+};
+
+/* ============ ALL DRAFT PLAYERS (by tier) ============ */
+let plGroup = "men";
+let poolQuery = "";
+const poolSearch = document.getElementById("poolSearch");
+poolSearch.oninput = () => { poolQuery = poolSearch.value; renderPool(); };
+document.getElementById("plMen").onclick = () => { plGroup = "men"; renderAll(); };
+document.getElementById("plWomen").onclick = () => { plGroup = "women"; renderAll(); };
+
+function poolRow(p) {
+  const owned = state.own[plGroup].includes(p[0]);
+  return `<div class="player-row ${owned ? "owned" : ""}">
+    <div>${p[0]} <small>${ROLE[p[1]]} · ${p[2]}</small></div>
+    <small>${owned ? "Owned" : ""}</small>
+  </div>`;
+}
+
+function renderPool() {
+  document.getElementById("plMen").classList.toggle("on", plGroup === "men");
+  document.getElementById("plWomen").classList.toggle("on", plGroup === "women");
+
+  const list = sortedPlayers(plGroup).filter(p => matches(p, poolQuery));
+  if (!list.length) {
+    document.getElementById("poolList").innerHTML = `<div class="none">No players match your search.</div>`;
+    return;
+  }
+  document.getElementById("poolList").innerHTML = TIERS.map(t => {
+    const items = list.filter(p => t.test(p[2]));
+    if (!items.length) return "";
+    return `<h3 class="sechead">${t.label}${t.note ? `<span class="tiernote">${t.note}</span>` : ""} (${items.length})</h3>
+      <div class="marketbox">${items.map(poolRow).join("")}</div>`;
+  }).join("");
+}
+
+/* ============ PICKER (IPL team / country) ============ */
+let pick = null;
+let countryPickGender = "men";
+function openPicker(cfg) { pick = cfg; show("pick"); renderPicker(); }
+function renderPicker() {
+  if (!pick) return;
+  document.getElementById("pickTitle").textContent = pick.title;
+  document.getElementById("pickSub").textContent = pick.sub || "";
+  const seg = document.getElementById("pickSeg");
+  if (pick.seg) {
+    seg.style.display = "grid";
+    seg.innerHTML = pick.seg.options.map(o => `<button data-seg="${o.value}" class="${pick.seg.get() === o.value ? "on" : ""}">${o.label}</button>`).join("");
+    seg.querySelectorAll("[data-seg]").forEach(b => b.onclick = () => { pick.seg.set(b.dataset.seg); renderPicker(); });
+  } else {
+    seg.style.display = "none";
+  }
+  const items = pick.items();
+  const list = document.getElementById("pickList");
+  list.innerHTML = items.length
+    ? items.map((it, i) => `<button class="pickbtn" data-i="${i}">${it.label}</button>`).join("")
+    : `<div class="none">Nothing here yet.</div>`;
+  list.querySelectorAll("[data-i]").forEach(b => b.onclick = () => pick.onPick(items[+b.dataset.i]));
+}
+document.getElementById("pickBack").onclick = () => (pick && pick.back ? pick.back() : show("home"));
+
+/* Playzone buttons: IPL and WCC ask for a team/country first */
+function startMode(m) {
+  if (m.name === "IPL Match") {
+    return openPicker({
+      title: "IPL Match", sub: "Choose your IPL team",
+      items: () => IPL_TEAMS.map(t => ({ label: t, team: t })),
+      onPick: it => openMode({ name: `IPL Match · ${it.team}`, desc: "Coming soon." }),
+      back: () => show("home")
+    });
+  }
+  if (m.name === "WCC Men's" || m.name === "WCC Women's") {
+    const g = m.name === "WCC Men's" ? "men" : "women";
+    return openPicker({
+      title: m.name, sub: "Choose a country",
+      items: () => countriesOf(g).map(c => ({ label: c, team: c })),
+      onPick: it => openMode({ name: `${m.name} · ${it.team}`, desc: "Coming soon." }),
+      back: () => show("home")
+    });
+  }
+  openMode(m);
+}
+
+/* ============ DREAM TEAM ============ */
+let dreamCtx = null;
+function bestXI(list) {
+  const xi = [];
+  for (const role of Object.keys(NEED)) {
+    const best = list.filter(p => p[1] === role).sort((a, b) => b[2] - a[2]).slice(0, NEED[role]);
+    for (let i = 0; i < NEED[role]; i++) xi.push({ role, p: best[i] || null });
+  }
+  return xi;
+}
+function renderDream() {
+  if (!dreamCtx) return;
+  const { g, team } = dreamCtx;
+  document.getElementById("dreamTitle").textContent = `Dream Team · ${team}`;
+  document.getElementById("dreamSub").textContent =
+    `${g === "men" ? "Men's" : "Women's"} · ${IPL_TEAMS.includes(team) ? "IPL team" : "Country"}`;
+  const xi = bestXI(ownedPlayers(g).filter(p => p[3].includes(team)));
+  const filled = xi.filter(s => s.p);
+  const tpr = filled.length ? Math.round(filled.reduce((s, x) => s + x.p[2], 0) / filled.length) : 0;
+  document.getElementById("dtRate").textContent = `TPR ${tpr}`;
+  document.getElementById("dtList").innerHTML = xi.map(s => s.p
+    ? cardHTML(s.p)
+    : `<div class="card slot-empty"><div>Empty slot<small>${ROLE[s.role]}</small></div><div class="ovr">-</div></div>`
+  ).join("");
+}
+function showDream(g, team) { dreamCtx = { g, team }; show("dream"); }
+document.getElementById("dreamBack").onclick = () => openDreamStart();
+
+function openDreamStart() {
+  openPicker({
+    title: "Dream Team", sub: "Pick a type",
+    items: () => [{ label: "IPL Team", kind: "ipl" }, { label: "Country", kind: "country" }],
+    onPick: it => (it.kind === "ipl" ? openIplDream() : openCountryDream()),
+    back: () => show("home")
+  });
+}
+function openIplDream() {
+  openPicker({
+    title: "IPL Team", sub: "Choose your IPL team",
+    items: () => IPL_TEAMS.map(t => ({ label: t, team: t })),
+    onPick: it => showDream("men", it.team),
+    back: () => openDreamStart()
+  });
+}
+function openCountryDream() {
+  openPicker({
+    title: "Country", sub: "Choose men's or women's, then a country",
+    seg: { options: [{ label: "Men", value: "men" }, { label: "Women", value: "women" }],
+           get: () => countryPickGender, set: v => { countryPickGender = v; } },
+    items: () => countriesOf(countryPickGender).map(c => ({ label: c, team: c })),
+    onPick: it => showDream(countryPickGender, it.team),
+    back: () => openDreamStart()
+  });
+}
+document.getElementById("goDream").onclick = () => openDreamStart();
+
+/* ============ SHOP ============ */
+let shopGroup = "men";
+let shopQuery = "";
+const shopMsg = document.getElementById("shopMsg");
+const shopSearch = document.getElementById("shopSearch");
+function setShopMsg(t) { shopMsg.textContent = t; }
+shopSearch.oninput = () => { shopQuery = shopSearch.value; renderShop(); };
+
+function marketRows(cur) {
+  const list = sortedPlayers(shopGroup).filter(p => matches(p, shopQuery));
+  if (!list.length) return `<div class="none">No players match your search.</div>`;
+  return list.map(p => {
+    const owned = state.own[shopGroup].includes(p[0]);
+    const price = cur === "coins" ? coinPrice(p[2]) : gemPrice(p[2]);
+    const icon = cur === "coins" ? "🪙" : "💎";
+    const label = owned ? "Owned" : `${icon} ${price}`;
+    const disabled = owned || state[cur] < price;
+    return `<div class="player-row ${owned ? "owned" : ""}">
+      <div>${p[0]} <small>${ROLE[p[1]]} · ${p[2]}</small></div>
+      <button data-cur="${cur}" data-player="${p[0]}" ${disabled ? "disabled" : ""}>${label}</button>
+    </div>`;
+  }).join("");
+}
+
+function renderShop() {
+  document.getElementById("shMen").classList.toggle("on", shopGroup === "men");
+  document.getElementById("shWomen").classList.toggle("on", shopGroup === "women");
+  document.getElementById("coinMarket").innerHTML = marketRows("coins");
+  document.getElementById("gemMarket").innerHTML = marketRows("gems");
+  document.querySelectorAll("[data-player]").forEach(b => b.onclick = () => buyPlayer(b.dataset.cur, b.dataset.player));
+}
+function setShopGroup(g) { shopGroup = g; setShopMsg(""); renderAll(); }
+document.getElementById("shMen").onclick = () => setShopGroup("men");
+document.getElementById("shWomen").onclick = () => setShopGroup("women");
+document.getElementById("goShop").onclick = () => show("shop");
+
+function buyPlayer(cur, name) {
+  const g = shopGroup;
+  const p = findPlayer(g, name);
+  if (!p || state.own[g].includes(p[0])) return;
+  const price = cur === "coins" ? coinPrice(p[2]) : gemPrice(p[2]);
+  if (state[cur] < price) return setShopMsg(`Not enough ${cur}.`);
+  state[cur] -= price;
+  state.own[g].push(p[0]);
+  save();
+  setShopMsg(cur === "coins"
+    ? `Bought ${p[0]} (${p[2]}) for 🪙 ${price}!`
+    : `Signed ${p[0]} (${p[2]}) for 💎 ${price}!`);
+  renderAll();
+}
+
+/* ============ LOADING -> WELCOME ============ */
+renderAll();
+setTimeout(() => show("welcome"), 2500);
+document.getElementById("startBtn").onclick = () => show("credits");
+document.getElementById("creditsBtn").onclick = () => show("home");
+</script>
+</body>
+</html>
