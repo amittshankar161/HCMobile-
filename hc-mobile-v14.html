@@ -118,6 +118,53 @@ button:disabled{opacity:.4}
 #walk button{margin-top:30px;animation:pop .6s 1.4s ease-out both}
 @keyframes pop{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
 .pickbtn{width:100%;text-align:left;margin:8px 0;font-weight:700;font-size:16px;padding:16px}
+.screen.on{animation:fade .25s ease-out}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.cur b{display:inline-block}
+.bump{animation:bump .35s ease-out}
+@keyframes bump{0%{transform:scale(1.3)}100%{transform:scale(1)}}
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(8px);background:var(--panel);border:1px solid var(--gold);color:var(--chalk);padding:10px 16px;border-radius:12px;opacity:0;transition:opacity .25s,transform .25s;z-index:60;max-width:90%;text-align:center;pointer-events:none;font-size:15px}
+#toast.on{opacity:1;transform:translateX(-50%)}
+#nav{position:fixed;left:0;right:0;bottom:0;display:none;grid-template-columns:repeat(5,1fr);gap:4px;background:#0c1d2b;border-top:1px solid #2c4a62;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));z-index:40}
+body.navon #nav{display:grid}
+body.navon .screen{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+#nav button{background:none;border:none;padding:6px 0;font-size:20px;color:var(--mute);border-radius:10px}
+#nav button small{display:block;font-size:11px;margin-top:2px}
+#nav button.on{color:var(--gold);background:rgba(200,155,91,.14)}
+
+/* ---------- polish: depth, feedback, motion ---------- */
+button{transition:transform .14s ease,filter .2s ease,background .25s ease,box-shadow .25s ease,opacity .2s}
+button:hover:not(:disabled){filter:brightness(1.12);box-shadow:0 4px 12px rgba(0,0,0,.25)}
+button:active:not(:disabled){transform:scale(.95)}
+.box,.cur,.card,.shop-item,.draftbox,.marketbox,.tokenbox{box-shadow:0 6px 18px rgba(0,0,0,.28)}
+.box{transition:transform .25s ease,box-shadow .25s ease}
+.box:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.35)}
+.box h2{background:linear-gradient(90deg,#c89b5b,#f3dcae,#c89b5b);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite}
+@keyframes shine{to{background-position:200% center}}
+.card{transition:transform .2s ease}
+.card:hover,.player-row:hover{transform:translateX(3px)}
+.player-row{transition:transform .2s ease,opacity .3s}
+.cur{background:linear-gradient(180deg,rgba(31,58,80,.95),rgba(20,41,58,.95));border:1px solid rgba(200,155,91,.25)}
+.rise{animation:rise .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+/* welcome text enters in sequence */
+#welcome.on h1{animation:rise .6s .05s cubic-bezier(.2,.8,.2,1) both}
+#welcome.on p{animation:rise .6s .2s cubic-bezier(.2,.8,.2,1) both}
+#welcome.on button{animation:rise .6s .35s cubic-bezier(.2,.8,.2,1) both}
+/* loading ball */
+.ball{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff8a7a,var(--accent) 60%,#8f2519);margin-top:24px;animation:bounce .8s cubic-bezier(.4,0,.6,1) infinite alternate;box-shadow:0 6px 12px rgba(0,0,0,.35)}
+@keyframes bounce{from{transform:translateY(-34px)}to{transform:translateY(22px) scaleY(.85)}}
+/* Dream Team progress bar */
+.tprbar{height:8px;background:var(--panel);border-radius:8px;overflow:hidden;margin:0 0 12px}
+.tprbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--accent));border-radius:8px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+/* nav polish */
+#nav button{transition:transform .15s ease,background .25s ease,color .25s ease}
+#nav button:active{transform:scale(.9)}
+#nav button.on{transform:translateY(-2px)}
+#nav button.on::after{content:"";display:block;width:18px;height:3px;border-radius:3px;background:var(--gold);margin:4px auto 0}
+/* subtle pitch shimmer */
+.cricket-bg{animation:sheen 10s ease-in-out infinite alternate}
+@keyframes sheen{from{filter:brightness(1)}to{filter:brightness(1.08)}}
 </style>
 </head>
 <body>
@@ -126,6 +173,7 @@ button:disabled{opacity:.4}
 <section id="loading" class="screen on">
   <h1 class="logo">HC <span>MOBILE</span></h1>
   <div class="bar"><i></i></div>
+  <div class="ball"></div>
   <div class="tip">Loading...</div>
 </section>
 
@@ -174,6 +222,12 @@ button:disabled{opacity:.4}
     <h2>DREAM TEAM</h2>
     <p class="sub">Your best XI from the players you own.</p>
     <button class="primary" id="goDream">Open Dream Team</button>
+  </div>
+
+  <div class="box">
+    <h2>SOCIAL</h2>
+    <p class="sub">News, messages and friends.</p>
+    <button class="primary" id="goSocial">Open Social</button>
   </div>
 
   <div class="box">
@@ -252,8 +306,13 @@ button:disabled{opacity:.4}
   <button class="back" id="dreamBack">&larr; Back</button>
   <h1 id="dreamTitle"></h1>
   <p class="sub" id="dreamSub"></p>
-  <div class="dtrate" id="dtRate">TPR 0</div>
+  <div class="dtrate" id="dtRate">TPR 0 / 90</div>
+  <div class="tprbar"><i></i></div>
+  <div class="msg" id="dreamMsg"></div>
+  <h3 class="sechead">Your XI</h3>
   <div id="dtList"></div>
+  <h3 class="sechead">Players, 78–96 OVR</h3>
+  <div class="marketbox" id="dtPool"></div>
 </section>
 
 <!-- SHOP -->
@@ -283,6 +342,47 @@ button:disabled{opacity:.4}
   <div class="msg" id="shopMsg"></div>
 </section>
 
+<!-- SOCIAL HUB -->
+<section id="social" class="screen">
+  <button class="back" data-go="home">&larr; Home</button>
+  <h1>Social</h1>
+  <p class="sub" id="socialMsg"></p>
+  <div id="socialBody"></div>
+</section>
+
+<!-- NEWS -->
+<section id="news" class="screen">
+  <button class="back" data-go="social">&larr; Social</button>
+  <h1>News</h1>
+  <div id="newsForm"></div>
+  <div id="newsList"></div>
+</section>
+
+<!-- FRIENDS -->
+<section id="friends" class="screen">
+  <button class="back" data-go="social">&larr; Social</button>
+  <h1>Friends</h1>
+  <div id="friendsBody"></div>
+</section>
+
+<!-- MESSAGES -->
+<section id="messages" class="screen">
+  <button class="back" data-go="social">&larr; Social</button>
+  <h1>Messages</h1>
+  <div id="msgList"></div>
+</section>
+
+<!-- CHAT -->
+<section id="chat" class="screen">
+  <button class="back" data-go="messages">&larr; Messages</button>
+  <h1 id="chatTitle"></h1>
+  <div id="chatLog" style="flex:1;overflow-y:auto;min-height:200px"></div>
+  <div style="display:flex;gap:8px;padding:8px 0">
+    <input class="search" id="chatInput" placeholder="Type a message" style="margin:0">
+    <button class="primary" id="chatSend" style="min-width:0;font-size:15px;padding:12px">Send</button>
+  </div>
+</section>
+
 <!-- WALKOUT overlay -->
 <div id="walk">
   <div class="wl">WALKOUT</div>
@@ -292,6 +392,9 @@ button:disabled{opacity:.4}
   <button class="primary" id="walkBtn">Continue</button>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 /* ============ DATA: men from Cricket Players OVR database (Event OVR). Women: placeholder ratings. Format: [name, role, rating] ============ */
 const PLAYERS = {
@@ -574,8 +677,16 @@ const isDiamond = r => r >= WALKOUT_MIN;
 const coinPrice = r => r >= WALKOUT_MIN ? 2000 : r >= 90 ? 1000 : r >= 85 ? 500 : 200;
 const gemPrice  = r => r >= WALKOUT_MIN ? 300  : r >= 90 ? 100  : r >= 85 ? 50  : 20;
 
+/* ============ FIREBASE CONFIG: paste your own values here (see setup notes) ============ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCOVmGmeOHp9CNOuEvJ_A31Fjw3nGgcFO8",
+  authDomain: "hand-cricket-hc.firebaseapp.com",
+  projectId: "hand-cricket-hc",
+  appId: "1:120748620809:web:4c3a6c9689c954265c0cd8"
+};
+
 /* ============ SAVE STATE ============ */
-const DEFAULTS = { coins: 1000, gems: 100, tokens: 10, own: { men: [], women: [] } };
+const DEFAULTS = { coins: 1000, gems: 100, tokens: 10, own: { men: [], women: [] }, dream: {} };
 let state = JSON.parse(JSON.stringify(DEFAULTS));
 try {
   const saved = JSON.parse(localStorage.getItem("hc_mobile"));
@@ -598,14 +709,43 @@ function cardHTML(p, extra = "") {
 }
 
 /* ============ SCREENS ============ */
+function staggerIn(id) {
+  const scr = document.getElementById(id);
+  if (!scr) return;
+  scr.querySelectorAll(".card,.player-row,.shop-item,.box,.pickbtn").forEach((el, i) => {
+    el.classList.remove("rise");
+    el.style.animationDelay = Math.min(i * 40, 400) + "ms";
+    void el.offsetWidth;
+    el.classList.add("rise");
+  });
+}
+const NAV_MAP = { home: "home", draft: "draft", dream: "dream", shop: "shop", social: "social" };
 function show(id) {
   document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id));
+  const activeNav = Object.keys(NAV_MAP).find(k => NAV_MAP[k] === id);
+  document.body.classList.toggle("navon", !!activeNav);
+  document.querySelectorAll("[data-nav]").forEach(b => b.classList.toggle("on", b.dataset.nav === activeNav));
   renderAll();
+  staggerIn(id);
 }
+document.querySelectorAll("[data-nav]").forEach(b => b.onclick = () => {
+  const k = b.dataset.nav;
+  if (k === "dream") openDreamStart();
+  else if (k === "social") openSocial();
+  else show(k);
+});
 document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => show(b.dataset.go));
 
 function renderCur() {
-  document.querySelectorAll("[data-c]").forEach(el => el.textContent = state[el.dataset.c]);
+  document.querySelectorAll("[data-c]").forEach(el => {
+    const v = String(state[el.dataset.c]);
+    if (el.textContent !== "" && el.textContent !== v) {
+      el.classList.remove("bump");
+      void el.offsetWidth;
+      el.classList.add("bump");
+    }
+    el.textContent = v;
+  });
 }
 function renderAll() {
   renderCur();
@@ -664,7 +804,16 @@ function runWalkouts(list, done) {
 let group = "men";
 const msgEl = document.getElementById("msg");
 const pullEl = document.getElementById("pull");
-function setMsg(t) { msgEl.textContent = t; }
+let toastTimer = null;
+function toast(t) {
+  if (!t) return;
+  const el = document.getElementById("toast");
+  el.textContent = t;
+  el.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("on"), 1800);
+}
+function setMsg(t) { msgEl.textContent = t; toast(t); }
 
 function renderDraft() {
   document.getElementById("selMen").classList.toggle("on", group === "men");
@@ -832,20 +981,64 @@ function bestXI(list) {
   }
   return xi;
 }
+function dreamKey() { return dreamCtx.g + ":" + dreamCtx.team; }
+function xiPlayers() {
+  const names = (state.dream || {})[dreamKey()] || [];
+  return names.map(n => findPlayer(dreamCtx.g, n)).filter(Boolean);
+}
+function setXi(names) {
+  state.dream = state.dream || {};
+  state.dream[dreamKey()] = names;
+  save();
+  renderDream();
+}
+function dreamMsg(t) { document.getElementById("dreamMsg").textContent = t || ""; toast(t); }
+function dreamCandidates() {
+  const { g, team } = dreamCtx;
+  return PLAYERS[g]
+    .filter(p => p[3].includes(team) && p[2] >= 78 && p[2] <= 96)
+    .sort((a, b) => b[2] - a[2]);
+}
+function toggleXi(name) {
+  const xi = xiPlayers();
+  if (xi.some(p => p[0] === name)) {
+    dreamMsg("");
+    return setXi(xi.filter(p => p[0] !== name).map(p => p[0]));
+  }
+  const p = findPlayer(dreamCtx.g, name);
+  if (xi.length >= 11) return dreamMsg("Your XI is full (11 players). Remove someone first.");
+  const inRole = xi.filter(x => x[1] === p[1]).length;
+  if (inRole >= NEED[p[1]]) return dreamMsg(`Your XI already has ${NEED[p[1]]} ${ROLE[p[1]]}s.`);
+  dreamMsg("");
+  setXi([...xi.map(x => x[0]), p[0]]);
+}
 function renderDream() {
   if (!dreamCtx) return;
   const { g, team } = dreamCtx;
-  document.getElementById("dreamTitle").textContent = `Dream Team · ${team}`;
+  document.getElementById("dreamTitle").textContent = team;
   document.getElementById("dreamSub").textContent =
-    `${g === "men" ? "Men's" : "Women's"} · ${IPL_TEAMS.includes(team) ? "IPL team" : "Country"}`;
-  const xi = bestXI(ownedPlayers(g).filter(p => p[3].includes(team)));
-  const filled = xi.filter(s => s.p);
-  const tpr = filled.length ? Math.round(filled.reduce((s, x) => s + x.p[2], 0) / filled.length) : 0;
-  document.getElementById("dtRate").textContent = `TPR ${tpr}`;
-  document.getElementById("dtList").innerHTML = xi.map(s => s.p
-    ? cardHTML(s.p)
-    : `<div class="card slot-empty"><div>Empty slot<small>${ROLE[s.role]}</small></div><div class="ovr">-</div></div>`
-  ).join("");
+    `${g === "men" ? "Men's" : "Women's"} · ${IPL_TEAMS.includes(team) ? "IPL team" : "Country"} · Players 78–96 OVR`;
+
+  const xi = xiPlayers();
+  const tpr = xi.length ? Math.round(xi.reduce((s, p) => s + p[2], 0) / xi.length) : 0;
+  document.getElementById("dtRate").textContent = `TPR ${tpr} / 90 · XI ${xi.length}/11`;
+  document.querySelector(".tprbar i").style.width = Math.min(100, (tpr / 90) * 100) + "%";
+
+  document.getElementById("dtList").innerHTML = xi.length
+    ? xi.map(p => `<div class="player-row"><div>${esc(p[0])} <small>${ROLE[p[1]]} · ${p[2]}</small></div>
+        <button data-toggle="${esc(p[0])}">Remove</button></div>`).join("")
+    : `<div class="none">No players in your XI yet.</div>`;
+
+  const cands = dreamCandidates();
+  document.getElementById("dtPool").innerHTML = cands.length
+    ? cands.map(p => {
+        const inXi = xi.some(x => x[0] === p[0]);
+        return `<div class="player-row ${inXi ? "owned" : ""}"><div>${esc(p[0])} <small>${ROLE[p[1]]} · ${p[2]}</small></div>
+          <button data-toggle="${esc(p[0])}">${inXi ? "Remove" : "Add"}</button></div>`;
+      }).join("")
+    : `<div class="none">No players rated 78–96 for this team.</div>`;
+
+  document.querySelectorAll("[data-toggle]").forEach(b => b.onclick = () => toggleXi(b.dataset.toggle));
 }
 function showDream(g, team) { dreamCtx = { g, team }; show("dream"); }
 document.getElementById("dreamBack").onclick = () => openDreamStart();
@@ -883,7 +1076,7 @@ let shopGroup = "men";
 let shopQuery = "";
 const shopMsg = document.getElementById("shopMsg");
 const shopSearch = document.getElementById("shopSearch");
-function setShopMsg(t) { shopMsg.textContent = t; }
+function setShopMsg(t) { shopMsg.textContent = t; toast(t); }
 shopSearch.oninput = () => { shopQuery = shopSearch.value; renderShop(); };
 
 function marketRows(cur) {
@@ -930,10 +1123,203 @@ function buyPlayer(cur, name) {
 }
 
 /* ============ LOADING -> WELCOME ============ */
+/* ============ SOCIAL (Firebase) ============ */
+const fbReady = typeof firebase !== "undefined" && !FIREBASE_CONFIG.apiKey.startsWith("PASTE");
+let fbUser = null, fbProfile = null, db = null, auth = null, currentPair = null;
+const unsubs = {};
+function setSocialMsg(t) { document.getElementById("socialMsg").textContent = t || ""; }
+function unsub(k) { if (unsubs[k]) { unsubs[k](); delete unsubs[k]; } }
+function fmtTime(t) { return t && t.toDate ? t.toDate().toLocaleString() : ""; }
+function esc(t) { return String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+if (fbReady) {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  auth = firebase.auth();
+  db = firebase.firestore();
+  auth.onAuthStateChanged(async u => {
+    fbUser = u;
+    fbProfile = null;
+    if (u) {
+      const d = await db.collection("users").doc(u.uid).get();
+      if (d.exists) fbProfile = d.data();
+    }
+    renderSocial();
+  });
+}
+
+function renderSocial() {
+  const body = document.getElementById("socialBody");
+  if (!fbReady) {
+    body.innerHTML = `<div class="box"><p class="sub">Social needs Firebase setup. Paste your config into FIREBASE_CONFIG in this file.</p></div>`;
+    return;
+  }
+  if (!fbUser) {
+    body.innerHTML = `<div class="box"><p class="sub">Sign in to use News, Messages and Friends.</p>
+      <button class="primary full" id="signInBtn">Sign in with Google</button></div>`;
+    document.getElementById("signInBtn").onclick = signIn;
+    return;
+  }
+  if (!fbProfile) {
+    body.innerHTML = `<div class="box"><p class="sub">Choose a display name your friends will see.</p>
+      <input class="search" id="nameInput" placeholder="Display name" maxlength="20">
+      <button class="primary full" id="nameBtn">Save name</button></div>`;
+    document.getElementById("nameBtn").onclick = saveName;
+    return;
+  }
+  body.innerHTML = `<div class="box"><h2>${esc(fbProfile.name)}</h2>
+      <p class="sub">Friend code: <b>${fbProfile.code}</b></p>
+      <p class="sub" style="word-break:break-all">UID: ${fbUser.uid}</p></div>
+    <div class="grid" style="margin-top:14px">
+      <button id="gNews">News</button>
+      <button id="gMsg">Messages</button>
+      <button id="gFriends" class="wide">Friends</button>
+    </div>`;
+  document.getElementById("gNews").onclick = openNews;
+  document.getElementById("gMsg").onclick = openMessages;
+  document.getElementById("gFriends").onclick = openFriends;
+}
+
+function signIn() {
+  auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+    .catch(e => setSocialMsg(e.message));
+}
+
+async function saveName() {
+  const name = document.getElementById("nameInput").value.trim();
+  if (!name) return setSocialMsg("Enter a name.");
+  const profile = { uid: fbUser.uid, name, code: fbUser.uid.slice(0, 6).toUpperCase() };
+  await db.collection("users").doc(fbUser.uid).set(profile);
+  fbProfile = profile;
+  setSocialMsg("");
+  renderSocial();
+}
+
+function openSocial() { show("social"); renderSocial(); }
+document.getElementById("goSocial").onclick = openSocial;
+
+/* ---- News ---- */
+function openNews() {
+  show("news");
+  document.getElementById("newsForm").innerHTML = `<div class="box">
+    <input class="search" id="nTitle" placeholder="Title" maxlength="60">
+    <input class="search" id="nBody" placeholder="Write news" maxlength="300">
+    <button class="primary full" id="nPost">Post</button></div>`;
+  document.getElementById("nPost").onclick = postNews;
+  unsub("news");
+  unsubs.news = db.collection("news").orderBy("at", "desc").limit(30).onSnapshot(snap => {
+    document.getElementById("newsList").innerHTML = snap.docs.map(d => {
+      const n = d.data();
+      return `<div class="box"><b>${esc(n.title)}</b>
+        <p class="sub" style="text-align:left;margin:6px 0">${esc(n.body || "")}</p>
+        <small style="color:var(--mute)">${esc(n.byName || "")} · ${fmtTime(n.at)}</small></div>`;
+    }).join("") || `<p class="sub">No news yet.</p>`;
+  });
+}
+function postNews() {
+  const title = document.getElementById("nTitle").value.trim();
+  const body = document.getElementById("nBody").value.trim();
+  if (!title) return setSocialMsg("Give the news a title.");
+  db.collection("news").add({
+    title, body, by: fbUser.uid, byName: fbProfile.name,
+    at: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  document.getElementById("nTitle").value = "";
+  document.getElementById("nBody").value = "";
+  setSocialMsg("");
+}
+
+/* ---- Friend list (shared by Friends and Messages) ---- */
+function listFriends(targetId, emptyText, onTap, key) {
+  unsub(key);
+  unsubs[key] = db.collection("friendships").where("members", "array-contains", fbUser.uid)
+    .onSnapshot(snap => {
+      const el = document.getElementById(targetId);
+      el.innerHTML = snap.docs.map(d => {
+        const f = d.data();
+        const other = f.members.find(x => x !== fbUser.uid);
+        return `<div class="player-row" style="cursor:pointer" data-uid="${other}" data-name="${esc(f.names[other])}">
+          <div>${esc(f.names[other])}</div><small>Open</small></div>`;
+      }).join("") || `<div class="none">${emptyText}</div>`;
+      el.querySelectorAll("[data-uid]").forEach(r => r.onclick = () => onTap(r.dataset.uid, r.dataset.name));
+    }, e => setSocialMsg(e.message));
+}
+
+/* ---- Friends ---- */
+function openFriends() {
+  show("friends");
+  document.getElementById("friendsBody").innerHTML = `<div class="box">
+      <p class="sub">Your friend code: <b>${fbProfile.code}</b></p>
+      <input class="search" id="fCode" placeholder="Friend code" maxlength="6">
+      <button class="primary full" id="fAdd">Add friend</button></div>
+    <div class="box" id="friendList"></div>`;
+  document.getElementById("fAdd").onclick = addFriend;
+  listFriends("friendList", "No friends yet. Add one with their code.", (uid, name) => openChat(uid, name), "friends");
+}
+async function addFriend() {
+  const code = document.getElementById("fCode").value.trim().toUpperCase();
+  if (!code) return setSocialMsg("Enter a friend code.");
+  if (code === fbProfile.code) return setSocialMsg("That is your own code.");
+  const q = await db.collection("users").where("code", "==", code).limit(1).get();
+  if (q.empty) return setSocialMsg("No player has that code.");
+  const other = q.docs[0].data();
+  const pairId = [fbUser.uid, other.uid].sort().join("_");
+  await db.collection("friendships").doc(pairId).set({
+    members: [fbUser.uid, other.uid],
+    names: { [fbUser.uid]: fbProfile.name, [other.uid]: other.name }
+  }, { merge: true });
+  document.getElementById("fCode").value = "";
+  setSocialMsg(`Added ${other.name}.`);
+}
+
+/* ---- Messages ---- */
+function openMessages() {
+  show("messages");
+  document.getElementById("msgList").innerHTML = `<div class="box" id="chatFriends"></div>`;
+  listFriends("chatFriends", "Add a friend first to message them.", (uid, name) => openChat(uid, name), "messages");
+}
+function openChat(otherUid, name) {
+  currentPair = [fbUser.uid, otherUid].sort().join("_");
+  document.getElementById("chatTitle").textContent = name;
+  show("chat");
+  unsub("chat");
+  unsubs.chat = db.collection("friendships").doc(currentPair).collection("messages")
+    .orderBy("at").limitToLast(100)
+    .onSnapshot(snap => {
+      const log = document.getElementById("chatLog");
+      log.innerHTML = snap.docs.map(d => {
+        const m = d.data();
+        const mine = m.from === fbUser.uid;
+        return `<div style="text-align:${mine ? "right" : "left"};margin:6px 0">
+          <span style="display:inline-block;padding:8px 12px;border-radius:12px;max-width:80%;text-align:left;background:${mine ? "var(--accent)" : "var(--panel)"}">${esc(m.text)}</span></div>`;
+      }).join("") || `<p class="sub">No messages yet. Say hi.</p>`;
+      log.scrollTop = log.scrollHeight;
+    });
+}
+function sendChat() {
+  const input = document.getElementById("chatInput");
+  const text = input.value.trim();
+  if (!text || !currentPair) return;
+  db.collection("friendships").doc(currentPair).collection("messages").add({
+    from: fbUser.uid, text, at: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  input.value = "";
+}
+document.getElementById("chatSend").onclick = sendChat;
+document.getElementById("chatInput").addEventListener("keydown", e => { if (e.key === "Enter") sendChat(); });
+
+/* ============ START-UP ============ */
 renderAll();
 setTimeout(() => show("welcome"), 2500);
 document.getElementById("startBtn").onclick = () => show("credits");
 document.getElementById("creditsBtn").onclick = () => show("home");
 </script>
+<nav id="nav">
+  <button data-nav="home">🏠<small>Home</small></button>
+  <button data-nav="draft">🎟️<small>Draft</small></button>
+  <button data-nav="dream">🌟<small>Dream</small></button>
+  <button data-nav="shop">🛒<small>Shop</small></button>
+  <button data-nav="social">💬<small>Social</small></button>
+</nav>
+<div id="toast"></div>
 </body>
 </html>
