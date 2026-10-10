@@ -165,6 +165,25 @@ button:active:not(:disabled){transform:scale(.95)}
 /* subtle pitch shimmer */
 .cricket-bg{animation:sheen 10s ease-in-out infinite alternate}
 @keyframes sheen{from{filter:brightness(1)}to{filter:brightness(1.08)}}
+/* ---------- ranked ladder ---------- */
+.rankcard{text-align:center}
+.rankcard .badge{font-size:64px;line-height:1.1}
+.rdiv{font-size:30px;font-weight:800;color:var(--gold)}
+.rtier{letter-spacing:3px;text-transform:uppercase;font-size:13px;margin-top:2px}
+.tier-bronze .rtier{color:#c98a55}
+.tier-silver .rtier{color:#cfd6dc}
+.tier-gold .rtier{color:#e6b84a}
+.tier-diamond .rtier{color:#8fe3ff}
+.rbar{height:10px;background:var(--panel);border-radius:10px;overflow:hidden;margin:14px 0 6px}
+.rbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--accent));border-radius:10px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.rrec{color:var(--mute);margin-top:8px;font-size:14px}
+/* ---------- match ---------- */
+.score{display:flex;justify-content:space-around;align-items:center;background:var(--panel);border-radius:14px;padding:12px;margin:10px 0;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.28)}
+.score b{font-size:15px}
+.score span{display:block;font-size:36px;font-weight:800;color:var(--gold)}
+.status{min-height:52px;text-align:center;margin:8px 0;font-size:17px;line-height:1.35}
+.nums{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.nums button{font-size:28px;font-weight:800;padding:18px}
 </style>
 </head>
 <body>
@@ -240,7 +259,7 @@ button:active:not(:disabled){transform:scale(.95)}
 <!-- MODE placeholder -->
 <section id="mode" class="screen">
   <button class="back" data-go="home">&larr; Home</button>
-  <div class="soon">COMING SOON</div>
+  
   <h1 id="modeTitle"></h1>
   <p id="modeDesc"></p>
 </section>
@@ -313,6 +332,49 @@ button:active:not(:disabled){transform:scale(.95)}
   <div id="dtList"></div>
   <h3 class="sechead">Players, 78–96 OVR</h3>
   <div class="marketbox" id="dtPool"></div>
+</section>
+
+<!-- RANKED -->
+<section id="rank" class="screen">
+  <button class="back" data-go="home">&larr; Playzones</button>
+  <h1 id="rankTitle"></h1>
+  <p class="sub">Division ladder: Division 10 is the start, Division 1 is the top.</p>
+  <div class="box rankcard" id="rankCard"></div>
+  <button class="primary full" id="rankPlay">Play ranked match</button>
+  <div class="box">
+    <p class="sub">Test only: simulate a result to see the ladder move</p>
+    <div class="draftbtns">
+      <button id="tWin">Win +20</button>
+      <button id="tLoss">Loss -10</button>
+    </div>
+  </div>
+</section>
+
+<!-- MATCH -->
+<section id="play" class="screen">
+  <button class="back" id="playQuit">&larr; Quit</button>
+  <h1 id="playTitle"></h1>
+  <div class="score">
+    <div><b id="pYouName">You</b><span id="pYou">0</span></div>
+    <div><small id="pInfo" style="color:var(--mute)"></small></div>
+    <div><b id="pCpuName">CPU</b><span id="pCpu">0</span></div>
+  </div>
+  <div class="status" id="pLog"></div>
+  <div class="nums" id="pNums"></div>
+  <div id="pEnd"></div>
+</section>
+
+<!-- CHALLENGE -->
+<section id="challenge" class="screen">
+  <button class="back" id="chBack">&larr; Back</button>
+  <h1 id="chTitle"></h1>
+  <p class="sub" id="chSub"></p>
+  <div class="box">
+    <p class="sub">Friend code or UID</p>
+    <input class="search" id="chInput" placeholder="Enter friend code or UID" maxlength="80">
+    <button class="primary full" id="chSend">Send challenge</button>
+  </div>
+  <div class="box" id="chFriends"></div>
 </section>
 
 <!-- SHOP -->
@@ -728,7 +790,9 @@ function show(id) {
   renderAll();
   staggerIn(id);
 }
-document.querySelectorAll("[data-nav]").forEach(b => b.onclick = () => {
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-nav]");
+  if (!b) return;
   const k = b.dataset.nav;
   if (k === "dream") openDreamStart();
   else if (k === "social") openSocial();
@@ -950,12 +1014,351 @@ function renderPicker() {
 document.getElementById("pickBack").onclick = () => (pick && pick.back ? pick.back() : show("home"));
 
 /* Playzone buttons: IPL and WCC ask for a team/country first */
+/* ============ TEAM RATINGS ============ */
+const avgRating = a => Math.round(a.reduce((s, p) => s + p[2], 0) / a.length);
+function myRating(g) {
+  const top = ownedPlayers(g).sort((a, b) => b[2] - a[2]).slice(0, 11);
+  return top.length ? avgRating(top) : 60;
+}
+function teamRating(g, team) {
+  const top = PLAYERS[g].filter(p => p[3].includes(team)).sort((a, b) => b[2] - a[2]).slice(0, 11);
+  return top.length ? avgRating(top) : 70;
+}
+function myTeamRating(g, team) {
+  const ps = ((state.dream || {})[g + ":" + team] || []).map(n => findPlayer(g, n)).filter(Boolean);
+  return ps.length ? avgRating(ps) : myRating(g);
+}
+function otherOf(arr, exclude) {
+  const c = arr.filter(x => x !== exclude);
+  return c[Math.floor(Math.random() * c.length)];
+}
+
+/* ============ FRIEND MATCHES (live, via Firestore) ============ */
+let friendsCache = [];
+let matchesCache = [];
+let curM = null;
+let chCfg = null;
+const settling = new Set();
+
+function subscribeSocialCaches() {
+  if (!fbReady || !fbUser || !fbProfile) return;
+  unsub("cache");
+  unsubs.cache = db.collection("friendships").where("members", "array-contains", fbUser.uid)
+    .onSnapshot(snap => {
+      friendsCache = snap.docs.map(d => {
+        const f = d.data();
+        const o = f.members.find(x => x !== fbUser.uid);
+        return { uid: o, name: f.names[o] };
+      });
+    });
+  unsub("invites");
+  unsubs.invites = db.collection("matches").where("players", "array-contains", fbUser.uid)
+    .onSnapshot(snap => {
+      matchesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderChallenges();
+    });
+}
+
+function renderChallenges() {
+  const el = document.getElementById("challenges");
+  if (!el || !fbUser || !fbProfile) return;
+  const me = fbUser.uid;
+  const incoming = matchesCache.filter(m => m.status === "pending" && m.players[1] === me);
+  const mine = matchesCache.filter(m =>
+    m.status === "active" ||
+    (m.status === "pending" && m.players[0] === me) ||
+    (m.status === "over" && !(m.done && m.done[me])));
+  el.innerHTML = `
+    <div class="box"><h2>Challenges</h2>
+      ${incoming.map(m => `<div class="player-row"><div>${esc(m.names[m.players[0]])}<small>${esc(m.title)}</small></div>
+        <span><button data-accept="${m.id}">Accept</button> <button data-decline="${m.id}">Decline</button></span></div>`).join("")
+        || `<div class="none">No challenges.</div>`}
+    </div>
+    <div class="box"><h2>Your matches</h2>
+      ${mine.map(m => `<div class="player-row"><div>${esc(m.title)}<small>vs ${esc(m.names[m.players.find(x => x !== me)])} · ${m.status}</small></div>
+        <button data-open="${m.id}">Open</button></div>`).join("")
+        || `<div class="none">No matches in progress.</div>`}
+    </div>`;
+  el.querySelectorAll("[data-accept]").forEach(b => b.onclick = () => acceptChallenge(b.dataset.accept));
+  el.querySelectorAll("[data-decline]").forEach(b => b.onclick = () => db.collection("matches").doc(b.dataset.decline).update({ status: "declined" }));
+  el.querySelectorAll("[data-open]").forEach(b => b.onclick = () => openMatch(b.dataset.open));
+}
+
+function acceptChallenge(id) {
+  const me = fbUser.uid;
+  db.collection("matches").doc(id).update({
+    status: "active", [`ratings.${me}`]: myRating("men"), log: "Match on! Pick a number."
+  }).then(() => openMatch(id));
+}
+
+/* Challenge screen: choose a friend by code, UID, or from your friends list */
+function openChallenge(cfg) {
+  if (!fbReady || !fbUser || !fbProfile) {
+    toast("Sign in and save a name in Social first.");
+    return show("social");
+  }
+  chCfg = cfg;
+  show("challenge");
+  renderChallengeScreen();
+}
+document.getElementById("chBack").onclick = () => show("home");
+function renderChallengeScreen() {
+  document.getElementById("chTitle").textContent = chCfg.title;
+  document.getElementById("chSub").textContent = `Your rating ${myRating("men")} · pick a friend`;
+  const list = document.getElementById("chFriends");
+  list.innerHTML = friendsCache.length
+    ? `<p class="sub">Your friends</p>` + friendsCache.map(f =>
+        `<div class="player-row"><div>${esc(f.name)}</div><button data-fr="${f.uid}" data-nm="${esc(f.name)}">Challenge</button></div>`).join("")
+    : `<div class="none">No friends yet. Add one in Social → Friends.</div>`;
+  list.querySelectorAll("[data-fr]").forEach(b => b.onclick = () => sendChallenge(b.dataset.fr, b.dataset.nm));
+}
+document.getElementById("chSend").onclick = async () => {
+  const v = document.getElementById("chInput").value.trim();
+  if (!v) return toast("Enter a friend code or UID.");
+  let user = null;
+  if (v.length === 6) {
+    const q = await db.collection("users").where("code", "==", v.toUpperCase()).limit(1).get();
+    if (!q.empty) user = q.docs[0].data();
+  }
+  if (!user) {
+    const d = await db.collection("users").doc(v).get();
+    if (d.exists) user = d.data();
+  }
+  if (!user) return toast("No player found with that code or UID.");
+  if (user.uid === fbUser.uid) return toast("That is your own code.");
+  sendChallenge(user.uid, user.name);
+};
+
+async function sendChallenge(uid, name) {
+  const me = fbUser.uid;
+  const ref = db.collection("matches").doc();
+  await ref.set({
+    players: [me, uid],
+    names: { [me]: fbProfile.name, [uid]: name },
+    kind: chCfg.kind, mode: chCfg.mode || "", round: chCfg.round || 0,
+    title: chCfg.title, wickets: chCfg.wickets,
+    status: "pending", ratings: { [me]: myRating("men") },
+    picks: {}, runs: { [me]: 0, [uid]: 0 }, wkts: 0, inn: 1, bat: me, target: 0,
+    ballNo: 0, log: `Waiting for ${name} to accept.`, done: {},
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  openMatch(ref.id);
+}
+
+/* ---- Live match screen ---- */
+function openMatch(id) {
+  curM = null;
+  show("play");
+  unsub("match");
+  unsubs.match = db.collection("matches").doc(id).onSnapshot(snap => {
+    if (!snap.exists) return;
+    const m = { id, ...snap.data() };
+    curM = m;
+    renderMatch();
+    const [a, b] = m.players;
+    if (m.status === "active" && m.picks && m.picks[a] != null && m.picks[b] != null) resolveBall(id);
+    if (m.status === "over" && !(m.done && m.done[fbUser.uid]) && !settling.has(id)) settleMatch(m);
+  });
+}
+function pickBall(n) {
+  const m = curM;
+  if (!m || m.status !== "active") return;
+  const me = fbUser.uid;
+  if (m.picks && m.picks[me] != null) return;
+  db.collection("matches").doc(m.id).update({ [`picks.${me}`]: n });
+}
+function renderMatch() {
+  const m = curM;
+  if (!m) return;
+  const me = fbUser.uid;
+  const opp = m.players.find(x => x !== me);
+  document.getElementById("playTitle").textContent = m.title;
+  document.getElementById("pYouName").textContent = "You";
+  document.getElementById("pCpuName").textContent = m.names[opp];
+  document.getElementById("pYou").textContent = (m.runs && m.runs[me]) || 0;
+  document.getElementById("pCpu").textContent = (m.runs && m.runs[opp]) || 0;
+  document.getElementById("pInfo").textContent =
+    m.status === "pending" ? "Waiting to start"
+    : m.status === "active" ? (m.inn === 1 ? `Wickets ${m.wkts}/${m.wickets}` : `Chasing ${m.target} · wickets ${m.wkts}/${m.wickets}`)
+    : "Match over";
+  document.getElementById("pLog").textContent = m.log || "";
+
+  const nums = document.getElementById("pNums");
+  const end = document.getElementById("pEnd");
+  if (m.status === "over") {
+    const won = m.winner === me;
+    const next = m.kind === "tournament" && won && m.round < 3
+      ? { label: "Next round", fn: () => openChallenge({ kind: "tournament", round: m.round + 1, wickets: 3, title: `Tournament · Round ${m.round + 1} of 3` }) }
+      : m.kind === "ranked"
+        ? { label: "Back to ladder", fn: () => openRank(m.mode) }
+        : { label: "Back to Playzones", fn: () => show("home") };
+    nums.innerHTML = "";
+    end.innerHTML = `<div class="box" style="text-align:center">
+      <h2 style="font-size:24px">${won ? "You win!" : (m.winner ? m.names[m.winner] + " win" : "Match over")}</h2>
+      <p class="sub">${esc(m.log || "")}</p>
+      <button class="primary full" id="pNext">${next.label}</button></div>`;
+    document.getElementById("pNext").onclick = next.fn;
+  } else if (m.status === "pending") {
+    end.innerHTML = "";
+    nums.innerHTML = `<div class="none" style="grid-column:1/-1">Waiting for ${esc(m.names[opp])} to accept.</div>`;
+  } else {
+    end.innerHTML = "";
+    const picked = m.picks && m.picks[me] != null;
+    nums.innerHTML = picked
+      ? `<div class="none" style="grid-column:1/-1">You picked. Waiting for ${esc(m.names[opp])}...</div>`
+      : [1, 2, 3, 4, 5, 6].map(n => `<button data-n="${n}">${n}</button>`).join("");
+    nums.querySelectorAll("[data-n]").forEach(b => b.onclick = () => pickBall(+b.dataset.n));
+  }
+}
+
+/* Resolve one ball once both players have picked. Runs as a transaction,
+   so only one client applies it even if both try at the same time. */
+async function resolveBall(id) {
+  const ref = db.collection("matches").doc(id);
+  try {
+    await db.runTransaction(async tx => {
+      const snap = await tx.get(ref);
+      const m = snap.data();
+      if (!m || m.status !== "active") return;
+      const [a, b] = m.players;
+      const picks = m.picks || {};
+      if (picks[a] == null || picks[b] == null) return;
+
+      const bat = m.bat, bowl = bat === a ? b : a;
+      const bp = picks[bat], wp = picks[bowl];
+      const runs = { ...m.runs };
+      let wk = m.wkts || 0, inn = m.inn, target = m.target || 0, nbat = bat;
+      let status = "active", winner = null, log;
+
+      if (bp === wp) {
+        const br = (m.ratings && m.ratings[bat]) || 60;
+        const wr = (m.ratings && m.ratings[bowl]) || 60;
+        const survive = Math.min(0.5, Math.max(0.05, 0.1 + (br - wr) / 100));
+        if (Math.random() < survive) {
+          log = `Both showed ${bp}. Out, but the batter survived!`;
+        } else {
+          wk++;
+          log = `Both showed ${bp}. ${m.names[bat]} OUT for ${runs[bat] || 0}!`;
+        }
+      } else {
+        runs[bat] = (runs[bat] || 0) + bp;
+        log = `${m.names[bat]} scored ${bp}.`;
+      }
+
+      if (inn === 2 && (runs[b] || 0) >= target) {
+        status = "over"; winner = b; log += ` ${m.names[b]} reach the target!`;
+      } else if (wk >= m.wickets) {
+        if (inn === 1) {
+          inn = 2; nbat = b; target = (runs[a] || 0) + 1; wk = 0;
+          log += ` ${m.names[b]} need ${target} to win.`;
+        } else {
+          status = "over"; winner = a; log += ` ${m.names[b]} all out. ${m.names[a]} win!`;
+        }
+      }
+
+      const upd = { runs, wkts: wk, inn, bat: nbat, target, status, picks: {}, log,
+                    ballNo: (m.ballNo || 0) + 1 };
+      if (winner) upd.winner = winner;
+      tx.update(ref, upd);
+    });
+  } catch (e) { console.error(e); }
+}
+
+/* Apply the result for this player once: ladder, coins, tokens */
+function settleMatch(m) {
+  const me = fbUser.uid;
+  settling.add(m.id);
+  const won = m.winner === me;
+  if (m.kind === "ranked") {
+    rankResult(m.mode, won);
+  } else if (m.kind === "tournament") {
+    state.coins += won ? (m.round === 3 ? 1000 : 150) : 25;
+    if (won && m.round === 3) state.tokens += 2;
+  } else {
+    state.coins += won ? 200 : 50;
+  }
+  save();
+  renderAll();
+  db.collection("matches").doc(m.id).update({ [`done.${me}`]: true });
+}
+
+function quitMatch() {
+  const m = curM;
+  if (m && m.status === "active") {
+    const opp = m.players.find(x => x !== fbUser.uid);
+    db.collection("matches").doc(m.id).update({
+      status: "over", winner: opp, log: `${fbProfile.name} left the match.`
+    });
+  }
+  unsub("match");
+  curM = null;
+  show("home");
+}
+document.getElementById("playQuit").onclick = quitMatch;
+
+/* ============ MODES: each one challenges a friend ============ */
+function startRanked(mode) {
+  const wk = { "1v1": 1, "2v2": 2, "3v3": 3 }[mode];
+  openChallenge({ kind: "ranked", mode, wickets: wk, title: `${mode} Ranked` });
+}
+function startTournament(round) {
+  openChallenge({ kind: "tournament", round, wickets: 3, title: `Tournament · Round ${round} of 3` });
+}
+function startIpl(team) {
+  openChallenge({ kind: "ipl", wickets: 5, title: `IPL · ${team}` });
+}
+function startWcc(g, country) {
+  openChallenge({ kind: "wcc", wickets: 5, title: `WCC ${g === "men" ? "Men's" : "Women's"} · ${country}` });
+}
+
+/* ============ RANKED LADDER (1v1, 2v2, 3v3) ============ */
+const RANK_MODES = ["1v1", "2v2", "3v3"];
+let rankMode = "1v1";
+function rankOf(m) { return (state.ranks || {})[m] || { div: 10, pts: 0, w: 0, l: 0 }; }
+function tierOf(div) {
+  if (div >= 8) return { name: "Bronze", icon: "🥉", cls: "tier-bronze" };
+  if (div >= 5) return { name: "Silver", icon: "🥈", cls: "tier-silver" };
+  if (div >= 2) return { name: "Gold", icon: "🥇", cls: "tier-gold" };
+  return { name: "Diamond", icon: "💠", cls: "tier-diamond" };
+}
+function rankResult(m, won) {
+  const r = rankOf(m);
+  let { div, pts, w, l } = r;
+  if (won) { w++; pts += 20; } else { l++; pts -= 10; }
+  if (pts >= 100) { if (div > 1) div--; pts = 0; }
+  if (pts < 0) { if (div < 10) { div++; pts = 50; } else { pts = 0; } }
+  state.ranks = state.ranks || {};
+  state.ranks[m] = { div, pts, w, l };
+  save();
+  renderRank();
+}
+function openRank(m) { rankMode = m; show("rank"); renderRank(); }
+function renderRank() {
+  if (!document.getElementById("rankCard")) return;
+  const r = rankOf(rankMode);
+  const t = tierOf(r.div);
+  document.getElementById("rankTitle").textContent = `${rankMode} Ranked`;
+  document.getElementById("rankCard").className = `box rankcard ${t.cls}`;
+  document.getElementById("rankCard").innerHTML = `
+    <div class="badge">${t.icon}</div>
+    <div class="rdiv">Division ${r.div}</div>
+    <div class="rtier">${t.name}</div>
+    <div class="rbar"><i style="width:${r.pts}%"></i></div>
+    <div class="sub">${r.pts} / 100 points</div>
+    <div class="rrec">Wins ${r.w} · Losses ${r.l}</div>`;
+}
+document.getElementById("rankPlay").onclick = () => startRanked(rankMode);
+document.getElementById("tWin").onclick = () => rankResult(rankMode, true);
+document.getElementById("tLoss").onclick = () => rankResult(rankMode, false);
+
 function startMode(m) {
+  if (RANK_MODES.includes(m.name)) return openRank(m.name);
+  if (m.name === "Tournament") return startTournament(1);
   if (m.name === "IPL Match") {
     return openPicker({
       title: "IPL Match", sub: "Choose your IPL team",
       items: () => IPL_TEAMS.map(t => ({ label: t, team: t })),
-      onPick: it => openMode({ name: `IPL Match · ${it.team}`, desc: "Coming soon." }),
+      onPick: it => startIpl(it.team),
       back: () => show("home")
     });
   }
@@ -964,7 +1367,7 @@ function startMode(m) {
     return openPicker({
       title: m.name, sub: "Choose a country",
       items: () => countriesOf(g).map(c => ({ label: c, team: c })),
-      onPick: it => openMode({ name: `${m.name} · ${it.team}`, desc: "Coming soon." }),
+      onPick: it => startWcc(g, it.team),
       back: () => show("home")
     });
   }
@@ -1144,6 +1547,7 @@ if (fbReady) {
       if (d.exists) fbProfile = d.data();
     }
     renderSocial();
+    if (fbProfile) subscribeSocialCaches();
   });
 }
 
@@ -1169,6 +1573,7 @@ function renderSocial() {
   body.innerHTML = `<div class="box"><h2>${esc(fbProfile.name)}</h2>
       <p class="sub">Friend code: <b>${fbProfile.code}</b></p>
       <p class="sub" style="word-break:break-all">UID: ${fbUser.uid}</p></div>
+    <div id="challenges" style="margin-top:14px"></div>
     <div class="grid" style="margin-top:14px">
       <button id="gNews">News</button>
       <button id="gMsg">Messages</button>
@@ -1177,6 +1582,7 @@ function renderSocial() {
   document.getElementById("gNews").onclick = openNews;
   document.getElementById("gMsg").onclick = openMessages;
   document.getElementById("gFriends").onclick = openFriends;
+  renderChallenges();
 }
 
 function signIn() {
@@ -1192,6 +1598,7 @@ async function saveName() {
   fbProfile = profile;
   setSocialMsg("");
   renderSocial();
+  subscribeSocialCaches();
 }
 
 function openSocial() { show("social"); renderSocial(); }
